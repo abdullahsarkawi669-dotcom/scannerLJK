@@ -224,7 +224,7 @@
                         <!-- Nama Sekolah / Lembaga -->
                         <div>
                             <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Nama Sekolah / Pesantren / Lembaga</label>
-                            <input type="text" id="cfg-school" value="PONDOK PESANTREN MODERN AL-IKHLAS" oninput="updateConfig()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <input type="text" id="cfg-school" value="SMP IT Putra Abu Hurairah Mataram" oninput="updateConfig()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
                         </div>
 
                         <!-- Mata Pelajaran / Nama Ujian -->
@@ -668,7 +668,7 @@
             santriDB: {},
             dataSourceLabel: 'Memuat...',
             config: {
-                school: 'PONDOK PESANTREN MODERN AL-IKHLAS',
+                school: 'SMP IT Putra Abu Hurairah Mataram',
                 title: 'Penilaian Akhir Semester — Bahasa Arab',
                 examDate: new Date().toISOString().split('T')[0],
                 questionCount: 40, // 10, 25, 35, 40, 50
@@ -732,8 +732,8 @@
 
             const rowsPerCol = Math.ceil(questionCount / numCols);
 
-            // Area kotak jawaban berada di bawah kop header
-            const answerBoxTop = box.top + 235;
+            // Area kotak jawaban berada di bawah kop header (sinkron dengan headerH = 240)
+            const answerBoxTop = box.top + 272;
             const answerBoxBottom = box.bottom - 35;
             const answerBoxLeft = box.left + 35;
             const answerBoxRight = box.right - 35;
@@ -777,101 +777,101 @@
                 answerBubbles.push({ q, baseX, cy, opts });
             }
 
-            return { answerBubbles, numCols, rowsPerCol };
-        }
-
-        /**
-         * 4. GENERATOR TEMPLATE LJK A4 SIAP CETAK (TANPA NOMOR PESERTA)
-         */
-        function renderLJKCanvas(targetCanvas, simulatedAnswers = null, metaOverride = null) {
-            const ctx = targetCanvas.getContext('2d');
-            const W = LJK_SPEC.width;
-            const H = LJK_SPEC.height;
-            targetCanvas.width = W;
-            targetCanvas.height = H;
-
-            const { school, title, examDate, questionCount, optionCount } = APP_STATE.config;
-            const box = getAnchorCenterBox();
-            const map = computeBubbleMap(questionCount, optionCount);
-
-            const colInfoEl = document.getElementById('layout-col-info');
-            if (colInfoEl) {
-                colInfoEl.textContent = `Tata Letak: ${map.numCols} Kolom • Sinkron CV`;
-            }
-
-            // Latar putih bersih
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, W, H);
-
-            // Gambar 4 Kotak Jangkar Hitam Solid di keempat sudut
-            ctx.fillStyle = '#000000';
-            Object.values(LJK_SPEC.anchors).forEach(a => {
-                ctx.fillRect(a.x, a.y, a.size, a.size);
-            });
-
-            // Bingkai Kop Header LJK (tanpa matriks nomor peserta)
+            // Bingkai Kop Header LJK (diperbesar menjadi tinggi 240px)
             const headerLeft = box.left + 35;
             const headerTop = box.top + 15;
             const headerW = box.width - 70;
-            const headerH = 200;
+            const headerH = 240;
 
             ctx.strokeStyle = '#0f172a';
             ctx.lineWidth = 3;
             ctx.strokeRect(headerLeft, headerTop, headerW, headerH);
 
-            // Judul Lembaga & Ujian
+            // Judul Lembaga / Nama Sekolah (otomatis menyesuaikan skala jika teks panjang)
             ctx.fillStyle = '#0f172a';
-            ctx.font = '800 26px Inter, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(school.toUpperCase(), W / 2, headerTop + 42);
+            const schoolText = school.toUpperCase();
+            let schoolFontSize = 25;
+            ctx.font = `800 ${schoolFontSize}px Inter, sans-serif`;
+            while (ctx.measureText(schoolText).width > headerW - 40 && schoolFontSize > 16) {
+                schoolFontSize--;
+                ctx.font = `800 ${schoolFontSize}px Inter, sans-serif`;
+            }
+            ctx.fillText(schoolText, W / 2, headerTop + 38);
 
-            ctx.font = '700 20px Inter, sans-serif';
+            // Nama Mata Pelajaran / Ujian (font besar 26px tebal dengan skala otomatis)
+            const titleText = title.toUpperCase();
+            let titleFontSize = 26;
+            ctx.font = `800 ${titleFontSize}px Inter, sans-serif`;
+            while (ctx.measureText(titleText).width > headerW - 40 && titleFontSize > 16) {
+                titleFontSize--;
+                ctx.font = `800 ${titleFontSize}px Inter, sans-serif`;
+            }
             ctx.fillStyle = '#1e293b';
-            ctx.fillText('LEMBAR JAWABAN KOMPUTER (LJK)', W / 2, headerTop + 74);
+            ctx.fillText(titleText, W / 2, headerTop + 76);
 
-            ctx.font = '600 17px Inter, sans-serif';
+            // Informasi Jumlah Soal & Tanggal Ujian
+            ctx.font = '600 16px Inter, sans-serif';
             ctx.fillStyle = '#334155';
             const formattedDate = examDate ? new Date(examDate + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
-            ctx.fillText(`${title}  •  (${questionCount} Soal Pilihan Ganda)${formattedDate ? '  •  ' + formattedDate : ''}`, W / 2, headerTop + 104);
+            ctx.fillText(`${questionCount} Soal Pilihan Ganda${formattedDate ? '  •  ' + formattedDate : ''}`, W / 2, headerTop + 106);
 
             // Garis pemisah kop
             ctx.beginPath();
-            ctx.moveTo(headerLeft, headerTop + 120);
-            ctx.lineTo(headerLeft + headerW, headerTop + 120);
+            ctx.moveTo(headerLeft, headerTop + 124);
+            ctx.lineTo(headerLeft + headerW, headerTop + 124);
             ctx.lineWidth = 2;
+            ctx.strokeStyle = '#0f172a';
             ctx.stroke();
 
-            // Kolom Isian Tulis Tangan: Nama Santri, Kelas, dan Kotak Nilai
-            ctx.textAlign = 'left';
-            ctx.font = '700 17px Inter, sans-serif';
-            ctx.fillStyle = '#0f172a';
-            ctx.fillText('Nama Santri :', headerLeft + 22, headerTop + 152);
-            ctx.fillText('Kelas           :', headerLeft + 22, headerTop + 185);
-
-            // Garis tulis tangan atau teks simulasi
-            ctx.font = '600 17px Inter, sans-serif';
-            if (metaOverride && metaOverride.santriName) {
-                ctx.fillText(metaOverride.santriName, headerLeft + 145, headerTop + 152);
-                ctx.fillText(metaOverride.className || '', headerLeft + 145, headerTop + 185);
-            } else {
-                ctx.fillStyle = '#64748b';
-                ctx.fillText('____________________________________________________', headerLeft + 142, headerTop + 152);
-                ctx.fillText('________________________', headerLeft + 142, headerTop + 185);
-            }
-
-            // Kotak Nilai di sudut kanan kop
-            const scoreBoxW = 135;
+            // Kotak Nilai di sudut kanan kop (diperbesar: lebar 155px, tinggi 90px)
+            const scoreBoxW = 155;
+            const scoreBoxH = 90;
             const scoreBoxX = headerLeft + headerW - scoreBoxW - 18;
+            const scoreBoxY = headerTop + 137;
             ctx.strokeStyle = '#0f172a';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(scoreBoxX, headerTop + 128, scoreBoxW, 64);
-            ctx.font = '800 13px Inter, sans-serif';
+            ctx.lineWidth = 2.2;
+            ctx.strokeRect(scoreBoxX, scoreBoxY, scoreBoxW, scoreBoxH);
+            ctx.font = '800 15px Inter, sans-serif';
             ctx.fillStyle = '#0f172a';
             ctx.textAlign = 'center';
-            ctx.fillText('NILAI', scoreBoxX + scoreBoxW / 2, headerTop + 146);
+            ctx.fillText('NILAI', scoreBoxX + scoreBoxW / 2, scoreBoxY + 23);
 
-            // Bingkai Utama Area Pilihan Jawaban
-            const ansBoxTop = box.top + 235;
+            // Kolom Isian Tulis Tangan: Nama Santri & Kelas (Font 22px & Box tinggi 41px)
+            const labelX = headerLeft + 22;
+            const colonX = headerLeft + 168;
+            const inputBoxX = headerLeft + 184;
+            const inputBoxW = scoreBoxX - inputBoxX - 20;
+            const inputBoxH = 41;
+            const row1Y = headerTop + 134;
+            const row2Y = headerTop + 185;
+
+            ctx.textAlign = 'left';
+            ctx.font = '700 22px Inter, sans-serif';
+            ctx.fillStyle = '#0f172a';
+
+            // Baris 1: Nama Santri + Kotak Tulis Tangan
+            ctx.fillText('Nama Santri', labelX, row1Y + 28);
+            ctx.fillText(':', colonX, row1Y + 28);
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#334155';
+            ctx.strokeRect(inputBoxX, row1Y, inputBoxW, inputBoxH);
+
+            // Baris 2: Kelas + Kotak Tulis Tangan
+            ctx.fillText('Kelas', labelX, row2Y + 28);
+            ctx.fillText(':', colonX, row2Y + 28);
+            ctx.strokeRect(inputBoxX, row2Y, inputBoxW, inputBoxH);
+
+            // Teks simulasi jika dijalankan dari mode Simulasi Demo
+            if (metaOverride && metaOverride.santriName) {
+                ctx.font = '700 20px Inter, sans-serif';
+                ctx.fillStyle = '#0f172a';
+                ctx.fillText(metaOverride.santriName, inputBoxX + 14, row1Y + 28);
+                ctx.fillText(metaOverride.className || '', inputBoxX + 14, row2Y + 28);
+            }
+
+            // Bingkai Utama Area Pilihan Jawaban (sinkron dengan computeBubbleMap: box.top + 272)
+            const ansBoxTop = box.top + 272;
             const ansBoxH = box.bottom - 35 - ansBoxTop;
             ctx.strokeStyle = '#0f172a';
             ctx.lineWidth = 2.5;
@@ -2267,7 +2267,12 @@
                 const raw = localStorage.getItem(STORAGE_KEY);
                 if (raw) {
                     const parsed = JSON.parse(raw);
-                    if (parsed.config) APP_STATE.config = { ...APP_STATE.config, ...parsed.config };
+                    if (parsed.config) {
+                        if (!parsed.config.school || parsed.config.school.trim().toUpperCase() === 'PONDOK PESANTREN MODERN AL-IKHLAS') {
+                            parsed.config.school = 'SMP IT Putra Abu Hurairah Mataram';
+                        }
+                        APP_STATE.config = { ...APP_STATE.config, ...parsed.config };
+                    }
                     if (parsed.answerKey) APP_STATE.answerKey = parsed.answerKey;
                     if (parsed.scannedRecords) APP_STATE.scannedRecords = parsed.scannedRecords;
                 }
