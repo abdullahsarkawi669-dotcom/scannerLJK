@@ -777,6 +777,38 @@
                 answerBubbles.push({ q, baseX, cy, opts });
             }
 
+            return { answerBubbles, numCols, rowsPerCol };
+        }
+
+        /**
+         * 4. GENERATOR TEMPLATE LJK A4 SIAP CETAK (TANPA NOMOR PESERTA)
+         */
+        function renderLJKCanvas(targetCanvas, simulatedAnswers = null, metaOverride = null) {
+            const ctx = targetCanvas.getContext('2d');
+            const W = LJK_SPEC.width;
+            const H = LJK_SPEC.height;
+            targetCanvas.width = W;
+            targetCanvas.height = H;
+
+            const { school, title, examDate, questionCount, optionCount } = APP_STATE.config;
+            const box = getAnchorCenterBox();
+            const map = computeBubbleMap(questionCount, optionCount);
+
+            const colInfoEl = document.getElementById('layout-col-info');
+            if (colInfoEl) {
+                colInfoEl.textContent = `Tata Letak: ${map.numCols} Kolom • Sinkron CV`;
+            }
+
+            // Latar putih bersih
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, W, H);
+
+            // Gambar 4 Kotak Jangkar Hitam Solid di keempat sudut
+            ctx.fillStyle = '#000000';
+            Object.values(LJK_SPEC.anchors).forEach(a => {
+                ctx.fillRect(a.x, a.y, a.size, a.size);
+            });
+
             // Bingkai Kop Header LJK (diperbesar menjadi tinggi 240px)
             const headerLeft = box.left + 35;
             const headerTop = box.top + 15;
