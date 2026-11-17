@@ -164,7 +164,7 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
-                            <h1 class="font-extrabold text-lg sm:text-xl tracking-tight text-slate-900">OMRify <span class="text-indigo-600">ID</span></h1>
+                            <h1 class="font-extrabold text-lg sm:text-xl tracking-tight text-slate-900">GUScan <span class="text-indigo-600">ID</span></h1>
                             <span id="data-source-badge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
                                 <span>Memuat data...</span>
@@ -1119,14 +1119,23 @@
                 ctx.lineWidth = 2.2;
                 ctx.strokeRect(colX, colY, colW, examBoxH);
 
-                // Header gelap nama sekolah
+                // Header putih nama sekolah dengan teks hitam agar tidak mengganggu deteksi kotak jangkar
                 const schoolBarH = 44;
-                ctx.fillStyle = '#0f172a';
-                ctx.fillRect(colX, colY, colW, schoolBarH);
                 ctx.fillStyle = '#ffffff';
+                ctx.fillRect(colX + 1, colY + 1, colW - 2, schoolBarH - 1);
+                ctx.beginPath();
+                ctx.moveTo(colX, colY + schoolBarH);
+                ctx.lineTo(colX + colW, colY + schoolBarH);
+                ctx.lineWidth = 1.6;
+                ctx.strokeStyle = '#0f172a';
+                ctx.stroke();
+
+                ctx.fillStyle = '#0f172a';
                 ctx.font = '800 15.5px Inter, sans-serif';
                 ctx.textAlign = 'center';
-                drawWrappedCenteredText(ctx, school.toUpperCase(), centerX, colY + 20, colW - 24, 19, 2);
+                const schoolUpper = school.toUpperCase();
+                const isSingleLine = ctx.measureText(schoolUpper).width <= (colW - 24);
+                drawWrappedCenteredText(ctx, schoolUpper, centerX, isSingleLine ? colY + 28 : colY + 19, colW - 24, 19, 2);
 
                 // Mata Pelajaran / Nama Ujian
                 ctx.fillStyle = '#0f172a';
