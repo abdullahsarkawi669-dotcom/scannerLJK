@@ -15,6 +15,20 @@
     <!-- Integrasi File Eksternal Database Santri -->
     <script src="data_santri.js"></script>
 
+    <!-- Aturan cetak dinamis (Portrait / Landscape A4) -->
+    <style id="dynamic-print-style">
+        @media print {
+            #print-area {
+                width: 190mm !important;
+                height: auto !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 8mm;
+            }
+        }
+    </style>
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -22,7 +36,7 @@
             color: #0f172a;
         }
 
-        /* Aturan cetak khusus kertas A4 agar LJK presisi 100% */
+        /* Aturan cetak khusus kertas A4 tanpa memaksa ujung LJK ke pojok kertas */
         @media print {
             body * {
                 visibility: hidden;
@@ -32,19 +46,17 @@
             }
             #print-area {
                 position: fixed;
-                left: 0;
-                top: 0;
-                width: 210mm;
-                height: 297mm;
+                left: 8mm;
+                top: 8mm;
                 margin: 0;
-                padding: 6mm;
+                padding: 0;
                 background: #ffffff !important;
                 box-shadow: none !important;
                 border: none !important;
             }
-            @page {
-                size: A4 portrait;
-                margin: 0;
+            #ljk-template-canvas {
+                width: 100% !important;
+                height: auto !important;
             }
         }
 
@@ -136,31 +148,6 @@
                 <div>
                     <div class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Rincian Jawaban Per Nomor</div>
                     <div id="detail-items-grid" class="grid grid-cols-5 sm:grid-cols-8 gap-1.5"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Pratinjau Foto LJK (Annotated Image) -->
-    <div id="photo-modal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
-                <div>
-                    <h3 id="photo-modal-title" class="text-base sm:text-lg font-extrabold">Foto LJK Terkoreksi</h3>
-                    <p id="photo-modal-sub" class="text-xs text-indigo-300">Santri • Kelas</p>
-                </div>
-                <button onclick="closePhotoModal()" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <div class="p-4 sm:p-5 overflow-y-auto flex flex-col items-center gap-3">
-                <div class="bg-slate-950 rounded-xl p-2 w-full flex justify-center">
-                    <img id="photo-modal-img" src="" alt="Foto LJK" class="max-h-[70vh] rounded-lg object-contain">
-                </div>
-                <div class="flex flex-wrap items-center gap-2 text-[11px] w-full">
-                    <span class="flex items-center gap-1 text-emerald-700 font-semibold"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Hijau: Benar</span>
-                    <span class="flex items-center gap-1 text-rose-700 font-semibold"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>Merah: Salah</span>
-                    <span class="flex items-center gap-1 text-amber-700 font-semibold"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>Kuning: Kunci Jawaban</span>
                 </div>
             </div>
         </div>
@@ -290,6 +277,22 @@
                                 </select>
                             </div>
                         </div>
+
+                        <!-- Pilihan Orientasi Kertas LJK (Portrait / Landscape) -->
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Orientasi Lembar LJK</label>
+                            <div class="grid grid-cols-2 gap-2.5">
+                                <button type="button" id="btn-orient-portrait" onclick="setOrientation('portrait')" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border-2 border-indigo-600 bg-indigo-50 text-indigo-700 text-xs sm:text-sm font-bold transition">
+                                    <i data-lucide="smartphone" class="w-4 h-4"></i>
+                                    <span>Portrait (Berdiri)</span>
+                                </button>
+                                <button type="button" id="btn-orient-landscape" onclick="setOrientation('landscape')" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 text-xs sm:text-sm font-semibold transition">
+                                    <i data-lucide="tablet" class="w-4 h-4 rotate-90"></i>
+                                    <span>Landscape (Mendatar)</span>
+                                </button>
+                            </div>
+                            <p id="orientation-hint" class="text-[11px] text-slate-500 mt-1.5">Mode Portrait: Identitas ujian & santri di atas, bidang opsi rapat di bawah.</p>
+                        </div>
                     </div>
 
                     <!-- Tombol Cetak & Unduh PNG -->
@@ -309,24 +312,24 @@
                 <div class="bg-indigo-50/80 border border-indigo-200/80 rounded-2xl p-4 text-xs text-indigo-950 space-y-1.5">
                     <div class="font-bold flex items-center gap-1.5 text-sm text-indigo-900">
                         <i data-lucide="check-circle-2" class="w-4 h-4 text-indigo-600"></i>
-                        <span>Desain LJK Praktis Tanpa Nomor Peserta</span>
+                        <span>Desain LJK Ramping & Siap Tempel di Naskah Soal</span>
                     </div>
-                    <p>• Santri cukup menuliskan <strong>Nama Santri</strong> dan <strong>Kelas</strong> di kolom atas kertas LJK.</p>
-                    <p>• Tanpa bulatan nomor peserta, area jawaban menjadi lebih lega dan akurasi pembacaan kamera meningkat drastis.</p>
-                    <p>• Pastikan <strong>4 Kotak Hitam Jangkar</strong> di sudut bingkai tercetak penuh di kertas A4.</p>
+                    <p>• Garis bingkai dan <strong>4 Kotak Hitam Jangkar</strong> menempel rapat pada bidang bulatan opsi tanpa ruang kosong berlebih.</p>
+                    <p>• Ukuran dokumen proporsional sesuai jumlah soal (tidak dipaksa memenuhi satu halaman penuh A4).</p>
+                    <p>• Pada mode <strong>Landscape</strong>, tinggi LJK dirancang ramping agar pas diletakkan pada <strong>1/4 hingga 1/3 tinggi kertas A4 Portrait</strong>.</p>
                 </div>
             </div>
 
-            <!-- Panel Kanan: Pratinjau LJK A4 -->
+            <!-- Panel Kanan: Pratinjau LJK Ramping -->
             <div class="lg:col-span-7 flex flex-col items-center">
                 <div class="w-full flex items-center justify-between mb-3 px-1">
-                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Pratinjau Template LJK (Ukuran A4)</span>
-                    <span id="layout-col-info" class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">Tata Letak: 3 Kolom • Sinkron CV</span>
+                    <span id="preview-paper-label" class="text-xs font-bold uppercase tracking-wider text-slate-500">Pratinjau LJK Ramping (Portrait)</span>
+                    <span id="layout-col-info" class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">Portrait • 3 Kolom • Sinkron CV</span>
                 </div>
 
                 <div class="w-full overflow-x-auto pb-4 flex justify-center">
-                    <div id="print-area" class="bg-white shadow-xl border border-slate-300 rounded-sm p-3 sm:p-5 w-full max-w-[640px] aspect-[210/297] flex flex-col justify-between relative select-none">
-                        <canvas id="ljk-template-canvas" class="w-full h-full object-contain"></canvas>
+                    <div id="print-area" class="bg-white shadow-xl border border-slate-300 rounded-sm p-2 sm:p-3 w-full max-w-[560px] flex items-center justify-center relative select-none transition-all duration-200">
+                        <canvas id="ljk-template-canvas" class="w-full h-auto block"></canvas>
                     </div>
                 </div>
             </div>
@@ -415,11 +418,16 @@
                         </div>
                     </div>
 
-                    <!-- Langkah 3: Tombol Utama Mulai Scan LJK -->
+                    <!-- Langkah 3: Tombol Utama Mulai Scan LJK + Scan Ulang -->
                     <div class="pt-1 flex flex-wrap items-center gap-2.5">
                         <button id="btn-start-scan" onclick="startSingleShotCamera()" disabled class="flex-1 min-w-[200px] flex items-center justify-center gap-2 py-3 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-extrabold text-sm shadow-md shadow-indigo-200 disabled:shadow-none transition">
                             <i data-lucide="camera" class="w-5 h-5"></i>
                             <span id="btn-start-scan-label">3. Mulai Scan LJK</span>
+                        </button>
+
+                        <button id="btn-retry-top" onclick="retryCurrentScan()" class="hidden items-center justify-center gap-1.5 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs sm:text-sm font-extrabold shadow-sm transition">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                            <span>Scan Ulang</span>
                         </button>
 
                         <label id="lbl-upload-scan" class="flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs sm:text-sm font-bold cursor-pointer transition">
@@ -428,44 +436,10 @@
                             <input type="file" accept="image/*" class="hidden" onchange="handleStudentImageUpload(event)">
                         </label>
 
-                        <button onclick="runSimulatedStudentScan()" class="flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs sm:text-sm font-extrabold transition" title="Uji coba scan otomatis untuk santri yang sedang dipilih">
+                        <button onclick="runSimulatedStudentScan()" class="flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-extrabold transition" title="Uji coba scan otomatis untuk santri yang sedang dipilih">
                             <i data-lucide="sparkles" class="w-4 h-4"></i>
                             <span>Simulasi Demo</span>
                         </button>
-                    </div>
-
-                    <!-- Baris Tombol Ulang Scan Manual (Rescan) -->
-                    <div id="rescan-bar" class="hidden pt-3 mt-1 border-t border-slate-100 flex flex-wrap items-center gap-2.5">
-                        <div class="flex-1 min-w-[200px] text-xs text-slate-600 flex items-center gap-2">
-                            <i data-lucide="rotate-cw" class="w-4 h-4 text-indigo-600"></i>
-                            <span>Santri terakhir: <strong id="rescan-last-name" class="text-slate-900">-</strong> (<strong id="rescan-last-class" class="text-slate-900">-</strong>)</span>
-                        </div>
-                        <button id="btn-rescan-camera" onclick="rescanLastSantriCamera()" class="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold shadow-sm transition">
-                            <i data-lucide="camera" class="w-4 h-4"></i>
-                            <span>Ulang Scan (Kamera)</span>
-                        </button>
-                        <label id="lbl-rescan-upload" class="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs sm:text-sm font-bold cursor-pointer transition">
-                            <i data-lucide="upload" class="w-4 h-4"></i>
-                            <span>Ulang Scan (Upload)</span>
-                            <input type="file" accept="image/*" class="hidden" onchange="handleRescanImageUpload(event)">
-                        </label>
-                        <button onclick="cancelRescanMode()" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition" title="Kembali ke mode scan santri berikutnya">
-                            <i data-lucide="x" class="w-4 h-4"></i>
-                            <span>Batal</span>
-                        </button>
-                    </div>
-
-                    <!-- Petunjuk Singkat Tombol Ulang Scan Manual -->
-                    <div class="mt-3 bg-indigo-50/70 border border-indigo-200/70 rounded-xl p-3 text-[11px] sm:text-xs text-indigo-950 flex items-start gap-2.5">
-                        <i data-lucide="info" class="w-4 h-4 text-indigo-600 shrink-0 mt-0.5"></i>
-                        <div class="space-y-1 leading-relaxed">
-                            <p class="font-bold text-indigo-900">Tombol Ulang Scan Manual</p>
-                            <p>• <strong>"Ulang Scan Manual"</strong> (di bawah viewport kamera): menjepret ulang foto LJK untuk <em>santri yang sama</em> tanpa mematikan kamera. Dipakai bila scan pertama kurang akurat (LJK miring / blur / cahaya tidak rata).</p>
-                            <p>• <strong>"Ulang Scan Santri Ini"</strong> (di kartu hasil): menyalakan kamera untuk memindai ulang santri terakhir. Setelah selesai, dropdown <em>tidak</em> otomatis lompat ke santri berikutnya.</p>
-                            <p>• <strong>"Upload Ulang"</strong>: pindai ulang dari file foto baru untuk santri terakhir.</p>
-                            <p>• <strong>"Foto LJK"</strong>: melihat kembali gambar LJK terkoreksi (lingkaran hijau = benar, merah = salah, kuning = kunci).</p>
-                            <p>• Tombol <strong>"Scan Ulang"</strong> di Dashboard (ikon ↻) juga bisa memulai ulang scan untuk santri mana pun yang sudah punya nilai.</p>
-                        </div>
                     </div>
                 </div>
 
@@ -483,6 +457,18 @@
                         <video id="camera-video" class="hidden" playsinline autoplay muted></video>
                         <canvas id="scanner-canvas" class="w-full h-full object-contain"></canvas>
 
+                        <!-- Banner Tombol Scan Ulang Jika Scanner Belum Berhasil Mendeteksi LJK Setelah 5 Detik -->
+                        <div id="scanner-timeout-banner" class="hidden absolute bottom-4 inset-x-4 bg-slate-950/90 backdrop-blur-md border border-amber-500/50 rounded-2xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xl">
+                            <div class="text-center sm:text-left">
+                                <div class="text-xs font-extrabold text-amber-400">LJK Belum Terdeteksi?</div>
+                                <div class="text-[11px] text-slate-300">Pastikan 4 kotak hitam sudut terlihat jelas & cahaya cukup, lalu tekan Scan Ulang.</div>
+                            </div>
+                            <button onclick="retryCurrentScan()" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow-md transition">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                <span>Scan Ulang</span>
+                            </button>
+                        </div>
+
                         <!-- Overlay Saat Kamera Belum Dinyalakan / Sudah Mati Setelah Scan -->
                         <div id="scanner-idle-overlay" class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-900/95">
                             <div class="w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 mb-3">
@@ -495,14 +481,14 @@
 
                     <!-- Kontrol Saat Kamera Aktif + Pengaturan Sensitivitas -->
                     <div class="p-3.5 bg-slate-950 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
-                        <div class="flex items-center gap-2">
-                            <button id="btn-manual-snap" onclick="captureManualNow()" disabled class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold transition" title="Ambil 1 foto lalu kamera otomatis mati">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button id="btn-manual-snap" onclick="captureManualNow()" disabled class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold transition">
                                 <i data-lucide="aperture" class="w-4 h-4"></i>
                                 <span>Jepret Manual</span>
                             </button>
-                            <button id="btn-repeat-scan" onclick="repeatScanManual()" disabled class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold transition" title="Ambil ulang foto LJK untuk santri yang sama tanpa mematikan kamera">
-                                <i data-lucide="rotate-cw" class="w-4 h-4"></i>
-                                <span>Ulang Scan Manual</span>
+                            <button id="btn-rescan-bar" onclick="retryCurrentScan()" disabled class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 disabled:opacity-40 text-amber-300 border border-amber-500/40 text-xs font-bold transition">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                <span>Scan Ulang</span>
                             </button>
                             <button id="btn-stop-cam" onclick="stopCamera(true)" disabled class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 disabled:opacity-40 text-rose-300 border border-rose-500/30 text-xs font-bold transition">
                                 <i data-lucide="video-off" class="w-4 h-4"></i>
@@ -522,9 +508,15 @@
             <!-- Kolom Kanan (5 Kolom): Hasil Scan Terakhir -->
             <div class="lg:col-span-5 space-y-4">
                 <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-base font-bold text-slate-900">Hasil Pemindaian Terakhir</h3>
-                        <span id="last-scan-time" class="text-xs text-slate-400">Belum ada scan</span>
+                    <div class="flex items-center justify-between gap-2 mb-4">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900">Hasil Pemindaian Terakhir</h3>
+                            <span id="last-scan-time" class="text-xs text-slate-400">Belum ada scan</span>
+                        </div>
+                        <button id="btn-rescan-last" onclick="rescanLastStudent()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold transition" title="Pindai ulang LJK santri ini jika hasil kurang sesuai">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                            <span>Scan Ulang LJK Ini</span>
+                        </button>
                     </div>
 
                     <!-- Kartu Skor Utama -->
@@ -553,23 +545,6 @@
                                 <div id="res-blank" class="text-lg font-extrabold text-slate-200">0</div>
                                 <div class="text-[11px] text-slate-300/80 font-medium">Kosong/Ganda</div>
                             </div>
-                        </div>
-
-                        <!-- Tombol Aksi Cepat untuk Santri Terakhir -->
-                        <div class="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-2">
-                            <button id="btn-rescan-last" onclick="rescanLastSantriCamera()" disabled class="flex-1 min-w-[140px] inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 disabled:bg-slate-700 disabled:text-slate-400 text-white text-xs font-bold transition">
-                                <i data-lucide="rotate-cw" class="w-4 h-4"></i>
-                                <span>Ulang Scan Santri Ini</span>
-                            </button>
-                            <label id="lbl-rescan-last-upload" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold cursor-pointer transition">
-                                <i data-lucide="upload" class="w-4 h-4"></i>
-                                <span>Upload Ulang</span>
-                                <input type="file" accept="image/*" class="hidden" onchange="handleRescanImageUpload(event)">
-                            </label>
-                            <button id="btn-view-photo" onclick="viewLastScanPhoto()" disabled class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:opacity-40 text-white text-xs font-bold transition">
-                                <i data-lucide="image" class="w-4 h-4"></i>
-                                <span>Foto LJK</span>
-                            </button>
                         </div>
                     </div>
 
@@ -742,7 +717,7 @@
         };
 
         /**
-         * 2. STATE GLOBAL APLIKASI
+         * 2. STATE GLOBAL & BUFFER COMPUTER VISION APLIKASI
          */
         const APP_STATE = {
             santriDB: {},
@@ -753,44 +728,199 @@
                 examDate: new Date().toISOString().split('T')[0],
                 questionCount: 40, // 10, 25, 35, 40, 50
                 optionCount: 5,    // 4 (A-D) atau 5 (A-E)
-                maxScore: 100
+                maxScore: 100,
+                orientation: 'portrait' // 'portrait' atau 'landscape'
             },
             answerKey: {},       // { 1: 'A', 2: 'C', ... }
-            scannedRecords: {},  // Key unik: "7A::ABDULLAH RASYIQUL AKRAM" -> { className, santriName, correct, wrong, blank, finalScore, details, timestamp, scanImage }
+            scannedRecords: {},  // Key unik: "7A::ABDULLAH RASYIQUL AKRAM"
             threshold: 0.36,
             scanForKeyMode: false,
             cameraStream: null,
             isScanningLoop: false,
             stableLockCounter: 0,
             lastAnchorSnapshot: null,
-            lastScanInfo: null,      // {className, santriName} — santri terakhir yang berhasil discan (untuk tombol Ulang Scan)
-            rescanMode: false        // true = scan ulang untuk santri yang sama (jangan auto-advance ke santri berikutnya)
+            scanTimeoutTimer: null,
+            lastScannedTarget: null
         };
 
         const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E'];
-        const STORAGE_KEY = 'omrify_id_santri_v3';
 
-        /**
-         * 3. SPESIFIKASI GEOMETRIS LJK (TANPA NOMOR PESERTA)
-         * Koordinat ternormalisasi (nx, ny) terhadap 4 titik pusat kotak jangkar.
-         */
-        const LJK_SPEC = {
-            width: 1240,
-            height: 1754,
-            anchors: {
-                tl: { x: 75, y: 75, size: 50 },
-                tr: { x: 1115, y: 75, size: 50 },
-                bl: { x: 75, y: 1629, size: 50 },
-                br: { x: 1115, y: 1629, size: 50 }
-            }
+        const CV_BUFFERS = {
+            size: 0,
+            gray: null,
+            binary: null,
+            visited: null,
+            stack: null,
+            integral: null
         };
 
-        function getAnchorCenterBox() {
-            const half = LJK_SPEC.anchors.tl.size / 2;
-            const left = LJK_SPEC.anchors.tl.x + half;
-            const top = LJK_SPEC.anchors.tl.y + half;
-            const right = LJK_SPEC.anchors.tr.x + half;
-            const bottom = LJK_SPEC.anchors.bl.y + half;
+        /**
+         * 3. SPESIFIKASI GEOMETRIS LJK RAMPING & PRESISI (TANPA RUANG KOSONG BERLEBIH)
+         * Ukuran kanvas dihitung dinamis mengikuti isi komponen agar tidak memaksa ujung LJK
+         * ke pojok kertas A4, dan pada mode Landscape tingginya ramping (1/4 - 1/3 tinggi A4 Portrait).
+         */
+        function getLJKLayoutMetrics(
+            questionCount = APP_STATE.config.questionCount,
+            optionCount = APP_STATE.config.optionCount,
+            orientation = APP_STATE.config.orientation
+        ) {
+            const isLandscape = orientation === 'landscape';
+            const anchorSize = 40;
+            const quietZone = 8; // Jarak aman tipis antara kotak hitam jangkar & garis pinggir bidang opsi
+
+            // Tentukan jumlah kolom agar tinggi LJK tetap ramping
+            let numCols = 3;
+            if (!isLandscape) {
+                if (questionCount <= 10) numCols = 1;
+                else if (questionCount <= 35) numCols = 2;
+                else numCols = 3;
+            } else {
+                // Mode Landscape: maksimal 10 baris per kolom agar tinggi gambar LJK ~ 1/4 - 1/3 A4 Portrait
+                if (questionCount <= 10) numCols = 2;
+                else if (questionCount <= 40) numCols = 4;
+                else numCols = 5;
+            }
+
+            const rowsPerCol = Math.ceil(questionCount / numCols);
+
+            // Ukuran bulatan & jarak rapat bergaya ZipGrade
+            const radius = isLandscape
+                ? (numCols >= 5 ? 12 : 13)
+                : (numCols === 1 ? 16.5 : (numCols === 2 ? 15 : 13.5));
+            const optStep = Math.round(radius * 2.26);
+            const rowStep = isLandscape
+                ? Math.round(radius * 2.55)
+                : Math.round(radius * 2.65);
+
+            // Lebar presisi tiap kolom soal (nomor + bulatan opsi tanpa celah kosong berlebih)
+            const numLabelW = 34;
+            const bubblesSpan = (optionCount - 1) * optStep + radius * 2;
+            const colInnerPadX = 10;
+            const colWidth = colInnerPadX * 2 + numLabelW + bubblesSpan;
+
+            // Padding tipis antara garis pinggir ansBox dengan bulatan opsi terluar
+            const boxPadX = 10;
+            const boxPadY = 10;
+
+            const ansBoxW = boxPadX * 2 + numCols * colWidth;
+            const ansBoxH = boxPadY * 2 + (rowsPerCol - 1) * rowStep + radius * 2;
+
+            if (!isLandscape) {
+                // =============================================================
+                // MODE PORTRAIT RAMPING
+                // =============================================================
+                const outerPad = 22;
+                const minPortraitW = numCols === 1 ? 620 : (numCols === 2 ? 780 : 900);
+                const gridFullW = (anchorSize + quietZone) * 2 + ansBoxW;
+                const W = Math.max(minPortraitW, outerPad * 2 + gridFullW);
+
+                const header = {
+                    left: outerPad,
+                    top: outerPad,
+                    width: W - outerPad * 2,
+                    height: 176
+                };
+
+                const anchorTop = header.top + header.height + 14;
+                const ansBoxTop = anchorTop + 4;
+                const ansBoxBottom = ansBoxTop + ansBoxH;
+                const anchorBottom = ansBoxBottom + 4 - anchorSize;
+
+                // Pusatkan blok jangkar + ansBox secara horizontal sejajar dengan lebar header
+                const totalGridSpanW = (anchorSize + quietZone) * 2 + ansBoxW;
+                const anchorLeft = Math.round((W - totalGridSpanW) / 2);
+                const ansBoxLeft = anchorLeft + anchorSize + quietZone;
+                const ansBoxRight = ansBoxLeft + ansBoxW;
+                const anchorRight = ansBoxRight + quietZone;
+
+                const H = Math.max(anchorBottom + anchorSize, ansBoxBottom) + outerPad;
+
+                const anchors = {
+                    tl: { x: anchorLeft, y: anchorTop, size: anchorSize },
+                    tr: { x: anchorRight, y: anchorTop, size: anchorSize },
+                    bl: { x: anchorLeft, y: anchorBottom, size: anchorSize },
+                    br: { x: anchorRight, y: anchorBottom, size: anchorSize }
+                };
+
+                const ansBox = {
+                    left: ansBoxLeft,
+                    right: ansBoxRight,
+                    top: ansBoxTop,
+                    bottom: ansBoxBottom,
+                    width: ansBoxW,
+                    height: ansBoxH
+                };
+
+                return {
+                    isLandscape: false, W, H, anchorSize, header, anchors, ansBox,
+                    numCols, rowsPerCol, colWidth, colInnerPadX, numLabelW, radius, optStep, rowStep, boxPadX, boxPadY
+                };
+            } else {
+                // =============================================================
+                // MODE LANDSCAPE RAMPING (1/4 - 1/3 TINGGI KERTAS A4 PORTRAIT)
+                // Identitas ujian & santri di kolom paling kiri, tanpa petunjuk pengisian
+                // =============================================================
+                const outerPad = 18;
+                const gapBetweenCols = 16;
+                const leftColW = 415;
+
+                // Pastikan tinggi ansBox cukup untuk menampung identitas ujian & santri di kolom kiri secara ramping
+                const minAnsBoxH = 345;
+                const effectiveAnsBoxH = Math.max(ansBoxH, minAnsBoxH);
+                const extraPadY = Math.round((effectiveAnsBoxH - ansBoxH) / 2);
+                const finalBoxPadY = boxPadY + extraPadY;
+
+                const anchorTop = outerPad;
+                const ansBoxTop = anchorTop + 4;
+                const ansBoxBottom = ansBoxTop + effectiveAnsBoxH;
+                const anchorBottom = ansBoxBottom + 4 - anchorSize;
+
+                const leftCol = {
+                    left: outerPad,
+                    top: anchorTop,
+                    width: leftColW,
+                    height: (anchorBottom + anchorSize) - anchorTop
+                };
+
+                const anchorLeft = leftCol.left + leftCol.width + gapBetweenCols;
+                const ansBoxLeft = anchorLeft + anchorSize + quietZone;
+                const ansBoxRight = ansBoxLeft + ansBoxW;
+                const anchorRight = ansBoxRight + quietZone;
+
+                const W = anchorRight + anchorSize + outerPad;
+                const H = anchorBottom + anchorSize + outerPad;
+
+                const anchors = {
+                    tl: { x: anchorLeft, y: anchorTop, size: anchorSize },
+                    tr: { x: anchorRight, y: anchorTop, size: anchorSize },
+                    bl: { x: anchorLeft, y: anchorBottom, size: anchorSize },
+                    br: { x: anchorRight, y: anchorBottom, size: anchorSize }
+                };
+
+                const ansBox = {
+                    left: ansBoxLeft,
+                    right: ansBoxRight,
+                    top: ansBoxTop,
+                    bottom: ansBoxBottom,
+                    width: ansBoxW,
+                    height: effectiveAnsBoxH
+                };
+
+                return {
+                    isLandscape: true, W, H, anchorSize, leftCol, anchors, ansBox,
+                    numCols, rowsPerCol, colWidth, colInnerPadX, numLabelW, radius, optStep, rowStep,
+                    boxPadX, boxPadY: finalBoxPadY
+                };
+            }
+        }
+
+        function getAnchorCenterBox(orientation = APP_STATE.config.orientation) {
+            const geom = getLJKLayoutMetrics(APP_STATE.config.questionCount, APP_STATE.config.optionCount, orientation);
+            const half = geom.anchorSize / 2;
+            const left = geom.anchors.tl.x + half;
+            const top = geom.anchors.tl.y + half;
+            const right = geom.anchors.tr.x + half;
+            const bottom = geom.anchors.bl.y + half;
             return {
                 left, top, right, bottom,
                 width: right - left,
@@ -799,37 +929,18 @@
         }
 
         /**
-         * Menghitung koordinat relatif (0..1) setiap bulatan pilihan jawaban.
-         * Pembagian kolom:
-         * - 10 soal: 1 kolom
-         * - 25 atau 35 soal: 2 kolom
-         * - 40 atau 50 soal: 3 kolom
+         * Menghitung koordinat relatif (0..1) setiap bulatan pilihan jawaban terhadap 4 titik pusat jangkar.
          */
-        function computeBubbleMap(questionCount, optionCount) {
-            const box = getAnchorCenterBox();
-            let numCols = 3;
-            if (questionCount <= 10) numCols = 1;
-            else if (questionCount <= 35) numCols = 2;
-            else numCols = 3;
+        function computeBubbleMap(questionCount, optionCount, orientation = APP_STATE.config.orientation) {
+            const geom = getLJKLayoutMetrics(questionCount, optionCount, orientation);
+            const box = getAnchorCenterBox(orientation);
+            const {
+                ansBox, numCols, rowsPerCol, colWidth, colInnerPadX,
+                numLabelW, radius, optStep, rowStep, boxPadX, boxPadY
+            } = geom;
 
-            const rowsPerCol = Math.ceil(questionCount / numCols);
-
-            // Area kotak jawaban berada di bawah kop header (sinkron dengan headerH = 240)
-            const answerBoxTop = box.top + 272;
-            const answerBoxBottom = box.bottom - 35;
-            const answerBoxLeft = box.left + 35;
-            const answerBoxRight = box.right - 35;
-
-            const innerW = answerBoxRight - answerBoxLeft;
-            const innerH = answerBoxBottom - answerBoxTop;
-
-            const colWidth = innerW / numCols;
-            const rowStep = Math.min(82, (innerH - 45) / Math.max(rowsPerCol, 10));
-            const startY = answerBoxTop + 55;
-
-            // Jarak antar opsi & radius bulatan disesuaikan jumlah kolom agar lega dan presisi
-            const optStep = numCols === 1 ? 68 : (numCols === 2 ? (optionCount === 5 ? 52 : 62) : (optionCount === 5 ? 40 : 48));
-            const radius = Math.min(numCols === 1 ? 20 : (numCols === 2 ? 17 : 14.5), rowStep * 0.35);
+            const innerLeft = ansBox.left + boxPadX;
+            const startY = ansBox.top + boxPadY + radius;
 
             const answerBubbles = [];
 
@@ -837,10 +948,9 @@
                 const colIdx = Math.floor((q - 1) / rowsPerCol);
                 const rowIdx = (q - 1) % rowsPerCol;
 
-                // Pusatkan grup nomor + opsi di dalam kolomnya
-                const groupWidth = 48 + (optionCount - 1) * optStep;
-                const colLeft = answerBoxLeft + colIdx * colWidth;
-                const baseX = colLeft + (colWidth - groupWidth) / 2 + 44;
+                const colLeft = innerLeft + colIdx * colWidth;
+                const baseX = colLeft + colInnerPadX + numLabelW + radius;
+                const numX = baseX - radius - 7;
                 const cy = startY + rowIdx * rowStep;
 
                 const opts = [];
@@ -856,180 +966,287 @@
                         nr: radius / box.width
                     });
                 }
-                answerBubbles.push({ q, baseX, cy, opts });
+                answerBubbles.push({ q, baseX, numX, cy, rowStep, colIdx, rowIdx, opts });
             }
 
-            return { answerBubbles, numCols, rowsPerCol };
+            return { answerBubbles, numCols, rowsPerCol, colWidth, innerLeft, rowStep };
+        }
+
+        function drawWrappedCenteredText(ctx, text, centerX, startY, maxWidth, lineHeight, maxLines = 2) {
+            const words = (text || '').split(/\s+/);
+            const lines = [];
+            let current = '';
+
+            words.forEach(word => {
+                const test = current ? `${current} ${word}` : word;
+                if (ctx.measureText(test).width <= maxWidth) {
+                    current = test;
+                } else {
+                    if (current) lines.push(current);
+                    current = word;
+                }
+            });
+            if (current) lines.push(current);
+
+            const finalLines = lines.slice(0, maxLines);
+            finalLines.forEach((line, idx) => {
+                ctx.fillText(line, centerX, startY + idx * lineHeight);
+            });
+            return startY + finalLines.length * lineHeight;
         }
 
         /**
-         * 4. GENERATOR TEMPLATE LJK A4 SIAP CETAK (TANPA NOMOR PESERTA)
+         * 4. GENERATOR TEMPLATE LJK RAMPING & PRESISI (PORTRAIT & LANDSCAPE)
          */
         function renderLJKCanvas(targetCanvas, simulatedAnswers = null, metaOverride = null) {
+            const { school, title, examDate, questionCount, optionCount, orientation } = APP_STATE.config;
+            const geom = getLJKLayoutMetrics(questionCount, optionCount, orientation);
+            const { W, H, anchors, ansBox, isLandscape } = geom;
+
             const ctx = targetCanvas.getContext('2d');
-            const W = LJK_SPEC.width;
-            const H = LJK_SPEC.height;
             targetCanvas.width = W;
             targetCanvas.height = H;
 
-            const { school, title, examDate, questionCount, optionCount } = APP_STATE.config;
-            const box = getAnchorCenterBox();
-            const map = computeBubbleMap(questionCount, optionCount);
+            const map = computeBubbleMap(questionCount, optionCount, orientation);
 
             const colInfoEl = document.getElementById('layout-col-info');
             if (colInfoEl) {
-                colInfoEl.textContent = `Tata Letak: ${map.numCols} Kolom • Sinkron CV`;
+                const orientText = isLandscape ? 'Landscape' : 'Portrait';
+                colInfoEl.textContent = `${orientText} • ${map.numCols} Kolom • ${W}×${H}px`;
             }
 
             // Latar putih bersih
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, W, H);
 
-            // Gambar 4 Kotak Jangkar Hitam Solid di keempat sudut
+            // Gambar 4 Kotak Jangkar Hitam Solid mengapit rapat bidang opsi
             ctx.fillStyle = '#000000';
-            Object.values(LJK_SPEC.anchors).forEach(a => {
+            Object.values(anchors).forEach(a => {
                 ctx.fillRect(a.x, a.y, a.size, a.size);
             });
 
-            // Bingkai Kop Header LJK (diperbesar menjadi tinggi 240px)
-            const headerLeft = box.left + 35;
-            const headerTop = box.top + 15;
-            const headerW = box.width - 70;
-            const headerH = 240;
+            const formattedDate = examDate
+                ? new Date(examDate + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                : '';
 
-            ctx.strokeStyle = '#0f172a';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(headerLeft, headerTop, headerW, headerH);
+            if (!isLandscape) {
+                // =============================================================
+                // TATA LETAK PORTRAIT RAMPING: KOP & IDENTITAS SANTRI DI ATAS
+                // =============================================================
+                const { left: headerLeft, top: headerTop, width: headerW, height: headerH } = geom.header;
 
-            // Judul Lembaga / Nama Sekolah (otomatis menyesuaikan skala jika teks panjang)
-            ctx.fillStyle = '#0f172a';
-            ctx.textAlign = 'center';
-            const schoolText = school.toUpperCase();
-            let schoolFontSize = 25;
-            ctx.font = `800 ${schoolFontSize}px Inter, sans-serif`;
-            while (ctx.measureText(schoolText).width > headerW - 40 && schoolFontSize > 16) {
-                schoolFontSize--;
-                ctx.font = `800 ${schoolFontSize}px Inter, sans-serif`;
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 2.2;
+                ctx.strokeRect(headerLeft, headerTop, headerW, headerH);
+
+                // Nama Sekolah
+                ctx.fillStyle = '#0f172a';
+                ctx.font = '800 18px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(school.toUpperCase(), W / 2, headerTop + 26);
+
+                // Nama Mata Pelajaran / Ujian
+                const subjectText = title.toUpperCase();
+                let subjectFontSize = 21;
+                ctx.font = `800 ${subjectFontSize}px Inter, sans-serif`;
+                while (ctx.measureText(subjectText).width > headerW - 32 && subjectFontSize > 14) {
+                    subjectFontSize--;
+                    ctx.font = `800 ${subjectFontSize}px Inter, sans-serif`;
+                }
+                ctx.fillStyle = '#1e293b';
+                ctx.fillText(subjectText, W / 2, headerTop + 52);
+
+                // Sub-info jumlah soal & tanggal
+                ctx.font = '600 12.5px Inter, sans-serif';
+                ctx.fillStyle = '#475569';
+                ctx.fillText(`${questionCount} Soal (Opsi A-${OPTION_LETTERS[optionCount - 1]})${formattedDate ? '  •  ' + formattedDate : ''}`, W / 2, headerTop + 72);
+
+                // Garis pemisah kop
+                ctx.beginPath();
+                ctx.moveTo(headerLeft, headerTop + 82);
+                ctx.lineTo(headerLeft + headerW, headerTop + 82);
+                ctx.lineWidth = 1.8;
+                ctx.strokeStyle = '#0f172a';
+                ctx.stroke();
+
+                // Kotak Nilai di sudut kanan kop
+                const scoreBoxW = 112;
+                const scoreBoxH = 74;
+                const scoreBoxX = headerLeft + headerW - scoreBoxW - 12;
+                const scoreBoxY = headerTop + 92;
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(scoreBoxX, scoreBoxY, scoreBoxW, scoreBoxH);
+                ctx.font = '800 12px Inter, sans-serif';
+                ctx.fillStyle = '#0f172a';
+                ctx.textAlign = 'center';
+                ctx.fillText('NILAI', scoreBoxX + scoreBoxW / 2, scoreBoxY + 17);
+
+                // Label & Kotak Tulis Tangan Nama Santri dan Kelas
+                const labelX = headerLeft + 14;
+                const inputBoxX = headerLeft + 146;
+                const inputBoxW = scoreBoxX - inputBoxX - 12;
+                const inputBoxH = 33;
+
+                ctx.textAlign = 'left';
+                ctx.font = '800 17px Inter, sans-serif';
+                ctx.fillStyle = '#0f172a';
+                ctx.fillText('Nama Santri :', labelX, headerTop + 114);
+                ctx.fillText('Kelas           :', labelX, headerTop + 154);
+
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 1.8;
+                ctx.strokeRect(inputBoxX, headerTop + 92, inputBoxW, inputBoxH);
+                ctx.strokeRect(inputBoxX, headerTop + 133, Math.min(200, inputBoxW), inputBoxH);
+
+                if (metaOverride && metaOverride.santriName) {
+                    ctx.font = '700 16px Inter, sans-serif';
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillText(metaOverride.santriName, inputBoxX + 10, headerTop + 114);
+                    ctx.fillText(metaOverride.className || '', inputBoxX + 10, headerTop + 154);
+                }
+            } else {
+                // =============================================================
+                // TATA LETAK LANDSCAPE RAMPING: IDENTITAS DI KOLOM KIRI
+                // Tanpa kotak petunjuk pengisian LJK, tinggi pas 1/4 - 1/3 A4 Portrait
+                // =============================================================
+                const { left: colX, top: colY, width: colW, height: colH } = geom.leftCol;
+                const centerX = colX + colW / 2;
+
+                // 1. Kotak Identitas Ujian (Atas Kolom Kiri)
+                const examBoxH = Math.min(148, Math.round(colH * 0.42));
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 2.2;
+                ctx.strokeRect(colX, colY, colW, examBoxH);
+
+                // Header gelap nama sekolah
+                const schoolBarH = 44;
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(colX, colY, colW, schoolBarH);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '800 15.5px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                drawWrappedCenteredText(ctx, school.toUpperCase(), centerX, colY + 20, colW - 24, 19, 2);
+
+                // Mata Pelajaran / Nama Ujian
+                ctx.fillStyle = '#0f172a';
+                ctx.font = '800 18.5px Inter, sans-serif';
+                const afterTitleY = drawWrappedCenteredText(ctx, title.toUpperCase(), centerX, colY + 72, colW - 26, 23, 2);
+
+                // Info Soal & Tanggal
+                ctx.fillStyle = '#475569';
+                ctx.font = '700 12.5px Inter, sans-serif';
+                ctx.fillText(
+                    `${questionCount} Soal (A-${OPTION_LETTERS[optionCount - 1]})${formattedDate ? '  •  ' + formattedDate : ''}`,
+                    centerX,
+                    Math.min(afterTitleY + 6, colY + examBoxH - 12)
+                );
+
+                // 2. Kotak Identitas Santri & Nilai (Mengisi sisa tinggi kolom kiri secara rapat)
+                const idGap = 10;
+                const idBoxY = colY + examBoxH + idGap;
+                const idBoxH = colH - examBoxH - idGap;
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 2.2;
+                ctx.strokeRect(colX, idBoxY, colW, idBoxH);
+
+                // Nama Santri
+                ctx.textAlign = 'left';
+                ctx.font = '800 17px Inter, sans-serif';
+                ctx.fillStyle = '#0f172a';
+                ctx.fillText('Nama Santri :', colX + 14, idBoxY + 26);
+
+                const nameBoxY = idBoxY + 34;
+                const nameBoxW = colW - 28;
+                const nameBoxH = Math.max(42, Math.round((idBoxH - 92) * 0.48));
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 1.8;
+                ctx.strokeRect(colX + 14, nameBoxY, nameBoxW, nameBoxH);
+
+                // Kelas & Kotak Nilai berdampingan di bawah kotak Nama Santri
+                const row2Y = nameBoxY + nameBoxH + 12;
+                const remH = idBoxY + idBoxH - row2Y - 12;
+
+                ctx.font = '800 17px Inter, sans-serif';
+                ctx.fillStyle = '#0f172a';
+                ctx.fillText('Kelas :', colX + 14, row2Y + 18);
+
+                const kelasBoxY = row2Y + 26;
+                const kelasBoxW = 195;
+                const kelasBoxH = Math.max(36, remH - 26);
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 1.8;
+                ctx.strokeRect(colX + 14, kelasBoxY, kelasBoxW, kelasBoxH);
+
+                // Kotak Nilai di sebelah kanan Kelas
+                const lScoreW = 172;
+                const lScoreH = Math.max(62, remH);
+                const lScoreX = colX + colW - lScoreW - 14;
+                const lScoreY = row2Y;
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 2.2;
+                ctx.strokeRect(lScoreX, lScoreY, lScoreW, lScoreH);
+                ctx.font = '800 13px Inter, sans-serif';
+                ctx.fillStyle = '#0f172a';
+                ctx.textAlign = 'center';
+                ctx.fillText('NILAI', lScoreX + lScoreW / 2, lScoreY + 18);
+
+                if (metaOverride && metaOverride.santriName) {
+                    ctx.textAlign = 'left';
+                    ctx.font = '700 16px Inter, sans-serif';
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillText(metaOverride.santriName, colX + 24, nameBoxY + Math.round(nameBoxH * 0.62));
+                    ctx.fillText(metaOverride.className || '', colX + 26, kelasBoxY + Math.round(kelasBoxH * 0.65));
+                }
             }
-            ctx.fillText(schoolText, W / 2, headerTop + 38);
 
-            // Nama Mata Pelajaran / Ujian (font besar 26px tebal dengan skala otomatis)
-            const titleText = title.toUpperCase();
-            let titleFontSize = 26;
-            ctx.font = `800 ${titleFontSize}px Inter, sans-serif`;
-            while (ctx.measureText(titleText).width > headerW - 40 && titleFontSize > 16) {
-                titleFontSize--;
-                ctx.font = `800 ${titleFontSize}px Inter, sans-serif`;
-            }
-            ctx.fillStyle = '#1e293b';
-            ctx.fillText(titleText, W / 2, headerTop + 76);
-
-            // Informasi Jumlah Soal & Tanggal Ujian
-            ctx.font = '600 16px Inter, sans-serif';
-            ctx.fillStyle = '#334155';
-            const formattedDate = examDate ? new Date(examDate + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
-            ctx.fillText(`${questionCount} Soal Pilihan Ganda${formattedDate ? '  •  ' + formattedDate : ''}`, W / 2, headerTop + 106);
-
-            // Garis pemisah kop
-            ctx.beginPath();
-            ctx.moveTo(headerLeft, headerTop + 124);
-            ctx.lineTo(headerLeft + headerW, headerTop + 124);
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#0f172a';
-            ctx.stroke();
-
-            // Kotak Nilai di sudut kanan kop (diperbesar: lebar 155px, tinggi 90px)
-            const scoreBoxW = 155;
-            const scoreBoxH = 90;
-            const scoreBoxX = headerLeft + headerW - scoreBoxW - 18;
-            const scoreBoxY = headerTop + 137;
+            // =================================================================
+            // BIDANG PILIHAN JAWABAN (TANPA RUANG KOSONG VERTIKAL & HORIZONTAL)
+            // =================================================================
             ctx.strokeStyle = '#0f172a';
             ctx.lineWidth = 2.2;
-            ctx.strokeRect(scoreBoxX, scoreBoxY, scoreBoxW, scoreBoxH);
-            ctx.font = '800 15px Inter, sans-serif';
-            ctx.fillStyle = '#0f172a';
-            ctx.textAlign = 'center';
-            ctx.fillText('NILAI', scoreBoxX + scoreBoxW / 2, scoreBoxY + 23);
+            ctx.strokeRect(ansBox.left, ansBox.top, ansBox.width, ansBox.height);
 
-            // Kolom Isian Tulis Tangan: Nama Santri & Kelas (Font 22px & Box tinggi 41px)
-            const labelX = headerLeft + 22;
-            const colonX = headerLeft + 168;
-            const inputBoxX = headerLeft + 184;
-            const inputBoxW = scoreBoxX - inputBoxX - 20;
-            const inputBoxH = 41;
-            const row1Y = headerTop + 134;
-            const row2Y = headerTop + 185;
-
-            ctx.textAlign = 'left';
-            ctx.font = '700 22px Inter, sans-serif';
-            ctx.fillStyle = '#0f172a';
-
-            // Baris 1: Nama Santri + Kotak Tulis Tangan
-            ctx.fillText('Nama Santri', labelX, row1Y + 28);
-            ctx.fillText(':', colonX, row1Y + 28);
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#334155';
-            ctx.strokeRect(inputBoxX, row1Y, inputBoxW, inputBoxH);
-
-            // Baris 2: Kelas + Kotak Tulis Tangan
-            ctx.fillText('Kelas', labelX, row2Y + 28);
-            ctx.fillText(':', colonX, row2Y + 28);
-            ctx.strokeRect(inputBoxX, row2Y, inputBoxW, inputBoxH);
-
-            // Teks simulasi jika dijalankan dari mode Simulasi Demo
-            if (metaOverride && metaOverride.santriName) {
-                ctx.font = '700 20px Inter, sans-serif';
-                ctx.fillStyle = '#0f172a';
-                ctx.fillText(metaOverride.santriName, inputBoxX + 14, row1Y + 28);
-                ctx.fillText(metaOverride.className || '', inputBoxX + 14, row2Y + 28);
-            }
-
-            // Bingkai Utama Area Pilihan Jawaban (sinkron dengan computeBubbleMap: box.top + 272)
-            const ansBoxTop = box.top + 272;
-            const ansBoxH = box.bottom - 35 - ansBoxTop;
-            ctx.strokeStyle = '#0f172a';
-            ctx.lineWidth = 2.5;
-            ctx.strokeRect(headerLeft, ansBoxTop, headerW, ansBoxH);
-
-            // Sub-header petunjuk singkat di atas kolom jawaban
-            ctx.fillStyle = '#f1f5f9';
-            ctx.fillRect(headerLeft + 2, ansBoxTop + 2, headerW - 4, 34);
-            ctx.fillStyle = '#0f172a';
-            ctx.font = '700 14px Inter, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('HITAMKAN BULATAN JAWABAN DENGAN PENSIL 2B ATAU PULPEN HITAM SECARA PENUH', W / 2, ansBoxTop + 24);
-
-            // Garis pemisah vertikal antar kolom jika > 1 kolom
+            // Garis pemisah vertikal tipis antar kolom jika > 1 kolom
             if (map.numCols > 1) {
                 ctx.strokeStyle = '#cbd5e1';
-                ctx.lineWidth = 1.5;
+                ctx.lineWidth = 1.2;
                 for (let c = 1; c < map.numCols; c++) {
-                    const lineX = headerLeft + (headerW / map.numCols) * c;
+                    const lineX = map.innerLeft + map.colWidth * c;
                     ctx.beginPath();
-                    ctx.moveTo(lineX, ansBoxTop + 44);
-                    ctx.lineTo(lineX, ansBoxTop + ansBoxH - 12);
+                    ctx.moveTo(lineX, ansBox.top + 6);
+                    ctx.lineTo(lineX, ansBox.bottom - 6);
                     ctx.stroke();
                 }
             }
 
-            // Gambar setiap nomor soal & bulatan opsinya
+            // Garis bantu horizontal tipis setiap kelipatan 5 soal (gaya ZipGrade)
+            map.answerBubbles.forEach(item => {
+                if (item.rowIdx > 0 && item.rowIdx % 5 === 0) {
+                    const colStart = map.innerLeft + item.colIdx * map.colWidth + 6;
+                    const colEnd = map.innerLeft + (item.colIdx + 1) * map.colWidth - 6;
+                    const lineY = item.cy - item.rowStep * 0.5;
+                    ctx.strokeStyle = '#e2e8f0';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(colStart, lineY);
+                    ctx.lineTo(colEnd, lineY);
+                    ctx.stroke();
+                }
+            });
+
+            // Gambar setiap nomor soal & bulatan opsinya rapat ke garis pinggir
             map.answerBubbles.forEach(item => {
                 ctx.fillStyle = '#0f172a';
-                ctx.font = '800 17px Inter, sans-serif';
+                ctx.font = '800 14.5px Inter, sans-serif';
                 ctx.textAlign = 'right';
-                ctx.fillText(`${item.q}.`, item.baseX - 24, item.cy + 6);
+                ctx.fillText(`${item.q}.`, item.numX, item.cy + 5);
 
                 item.opts.forEach(optB => {
                     const isFilled = simulatedAnswers && simulatedAnswers[item.q] === optB.opt;
                     drawBubble(ctx, optB.cx, optB.cy, optB.r, optB.opt, isFilled);
                 });
             });
-
-            // Footer kode kalibrasi
-            ctx.fillStyle = '#64748b';
-            ctx.font = '600 13px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText(`OMRIFY-ID | ${questionCount} SOAL | ${optionCount} OPSI (A-${OPTION_LETTERS[optionCount - 1]})`, W / 2, box.bottom - 10);
         }
 
         function drawBubble(ctx, cx, cy, r, label, isFilled) {
@@ -1057,6 +1274,141 @@
         /**
          * 5. MESIN COMPUTER VISION OMR (ADAPTIVE THRESHOLD + 4-CORNER ANCHOR + PERSPECTIVE WARP)
          */
+        function ensureCVBuffers(w, h) {
+            const total = w * h;
+            if (CV_BUFFERS.size !== total) {
+                CV_BUFFERS.size = total;
+                CV_BUFFERS.gray = new Uint8Array(total);
+                CV_BUFFERS.binary = new Uint8Array(total);
+                CV_BUFFERS.visited = new Uint8Array(total);
+                CV_BUFFERS.stack = new Int32Array(total);
+                CV_BUFFERS.integral = new Uint32Array((w + 1) * (h + 1));
+            } else {
+                CV_BUFFERS.visited.fill(0);
+            }
+            return CV_BUFFERS;
+        }
+
+        function toGrayscale(imgData, w, h) {
+            const d = imgData.data;
+            const len = w * h;
+            const { gray } = ensureCVBuffers(w, h);
+            for (let i = 0; i < len; i++) {
+                const idx = i * 4;
+                gray[i] = (d[idx] * 77 + d[idx + 1] * 150 + d[idx + 2] * 29) >> 8;
+            }
+            return gray;
+        }
+
+        function adaptiveThresholdBinary(gray, w, h) {
+            const { binary, integral } = ensureCVBuffers(w, h);
+            for (let y = 0; y < h; y++) {
+                let rowSum = 0;
+                const rowOffset = (y + 1) * (w + 1);
+                const prevRowOffset = y * (w + 1);
+                for (let x = 0; x < w; x++) {
+                    rowSum += gray[y * w + x];
+                    integral[rowOffset + (x + 1)] = integral[prevRowOffset + (x + 1)] + rowSum;
+                }
+            }
+
+            const halfWin = Math.max(16, Math.round(w / 24));
+            const C = 22;
+
+            for (let y = 0; y < h; y++) {
+                const y1 = Math.max(0, y - halfWin);
+                const y2 = Math.min(h - 1, y + halfWin);
+                const y1Off = y1 * (w + 1);
+                const y2Off = (y2 + 1) * (w + 1);
+                for (let x = 0; x < w; x++) {
+                    const x1 = Math.max(0, x - halfWin);
+                    const x2 = Math.min(w - 1, x + halfWin);
+                    const count = (x2 - x1 + 1) * (y2 - y1 + 1);
+                    const sum = integral[y2Off + (x2 + 1)]
+                              - integral[y1Off + (x2 + 1)]
+                              - integral[y2Off + x1]
+                              + integral[y1Off + x1];
+                    binary[y * w + x] = gray[y * w + x] < (sum / count - C) ? 1 : 0;
+                }
+            }
+            return binary;
+        }
+
+        function detectFourCornerAnchors(binary, w, h) {
+            const { visited, stack } = ensureCVBuffers(w, h);
+            const candidates = [];
+
+            for (let y = 8; y < h - 8; y += 2) {
+                for (let x = 8; x < w - 8; x += 2) {
+                    const idx = y * w + x;
+                    if (binary[idx] === 1 && !visited[idx]) {
+                        let minX = x, maxX = x, minY = y, maxY = y;
+                        let area = 0;
+                        let sp = 0;
+                        stack[sp++] = idx;
+                        visited[idx] = 1;
+
+                        while (sp > 0) {
+                            const curr = stack[--sp];
+                            const cy = Math.floor(curr / w);
+                            const cx = curr - cy * w;
+                            area++;
+
+                            if (cx < minX) minX = cx;
+                            if (cx > maxX) maxX = cx;
+                            if (cy < minY) minY = cy;
+                            if (cy > maxY) maxY = cy;
+
+                            if (cx > 0 && binary[curr - 1] === 1 && !visited[curr - 1]) { visited[curr - 1] = 1; stack[sp++] = curr - 1; }
+                            if (cx < w - 1 && binary[curr + 1] === 1 && !visited[curr + 1]) { visited[curr + 1] = 1; stack[sp++] = curr + 1; }
+                            if (cy > 0 && binary[curr - w] === 1 && !visited[curr - w]) { visited[curr - w] = 1; stack[sp++] = curr - w; }
+                            if (cy < h - 1 && binary[curr + w] === 1 && !visited[curr + w]) { visited[curr + w] = 1; stack[sp++] = curr + w; }
+                        }
+
+                        const bw = maxX - minX + 1;
+                        const bh = maxY - minY + 1;
+                        const aspect = bw / bh;
+                        const solidity = area / (bw * bh);
+
+                        if (bw >= 13 && bw <= w * 0.13 && aspect >= 0.65 && aspect <= 1.50 && solidity >= 0.68) {
+                            candidates.push({
+                                x: (minX + maxX) / 2,
+                                y: (minY + maxY) / 2,
+                                size: (bw + bh) / 2
+                            });
+                        }
+                    }
+                }
+            }
+
+            if (candidates.length < 4) return null;
+
+            let tl = null, tr = null, bl = null, br = null;
+            let minSum = Infinity, maxSum = -Infinity, minDiff = Infinity, maxDiff = -Infinity;
+
+            candidates.forEach(c => {
+                const sum = c.x + c.y;
+                const diff = c.x - c.y;
+                if (sum < minSum) { minSum = sum; tl = c; }
+                if (sum > maxSum) { maxSum = sum; br = c; }
+                if (diff > maxDiff) { maxDiff = diff; tr = c; }
+                if (diff < minDiff) { minDiff = diff; bl = c; }
+            });
+
+            if (!tl || !tr || !bl || !br) return null;
+            if (new Set([tl, tr, bl, br]).size !== 4) return null;
+
+            const topW = Math.hypot(tr.x - tl.x, tr.y - tl.y);
+            const botW = Math.hypot(br.x - bl.x, br.y - bl.y);
+            const leftH = Math.hypot(bl.x - tl.x, bl.y - tl.y);
+            const rightH = Math.hypot(br.x - tr.x, br.y - tr.y);
+
+            if (topW < w * 0.20 || botW < w * 0.20 || leftH < h * 0.16 || rightH < h * 0.16) return null;
+            if (Math.abs(topW - botW) / topW > 0.35 || Math.abs(leftH - rightH) / leftH > 0.35) return null;
+
+            return { tl, tr, bl, br };
+        }
+
         function processOMRImage(sourceElement, overlayCanvas = null, showAnswerKeyColors = true) {
             const srcW = sourceElement.videoWidth || sourceElement.width;
             const srcH = sourceElement.videoHeight || sourceElement.height;
@@ -1073,10 +1425,9 @@
             pCtx.drawImage(sourceElement, 0, 0, targetW, targetH);
 
             const imgData = pCtx.getImageData(0, 0, targetW, targetH);
-            const gray = toGrayscale(imgData);
+            const gray = toGrayscale(imgData, targetW, targetH);
             const binary = adaptiveThresholdBinary(gray, targetW, targetH);
 
-            // Deteksi 4 kotak hitam jangkar di sudut
             const anchors = detectFourCornerAnchors(binary, targetW, targetH);
 
             if (overlayCanvas) {
@@ -1092,11 +1443,10 @@
             }
 
             const { questionCount, optionCount } = APP_STATE.config;
-            const bubbleMap = computeBubbleMap(questionCount, optionCount);
+            const bubbleMap = computeBubbleMap(questionCount, optionCount, APP_STATE.config.orientation);
             const thresh = APP_STATE.threshold;
-            const box = getAnchorCenterBox();
+            const box = getAnchorCenterBox(APP_STATE.config.orientation);
 
-            // Interpolasi perspektif/bilinear 4 titik sudut jangkar
             const mapPoint = (nx, ny) => {
                 const topX = anchors.tl.x + (anchors.tr.x - anchors.tl.x) * nx;
                 const topY = anchors.tl.y + (anchors.tr.y - anchors.tl.y) * nx;
@@ -1164,10 +1514,8 @@
 
                     if (showAnswerKeyColors && keyOpt) {
                         if (chosen.opt === keyOpt) {
-                            // Benar -> Lingkaran Hijau
                             visualMarkers.push({ ...chosen, color: '#10b981' });
                         } else {
-                            // Salah -> Lingkaran Merah pada jawaban santri + Lingkaran Kuning pada kunci jawaban
                             visualMarkers.push({ ...chosen, color: '#ef4444' });
                             if (allMeasured[keyOpt]) {
                                 visualMarkers.push({ ...allMeasured[keyOpt], color: '#f59e0b' });
@@ -1190,7 +1538,6 @@
                 }
             });
 
-            // Gambar bingkai hijau pengunci & lingkaran koreksi pada overlayCanvas
             if (overlayCanvas) {
                 const oCtx = overlayCanvas.getContext('2d');
                 oCtx.strokeStyle = '#10b981';
@@ -1220,123 +1567,6 @@
                 answers: detectedAnswers,
                 annotatedDataUrl: overlayCanvas ? overlayCanvas.toDataURL('image/jpeg', 0.72) : null
             };
-        }
-
-        function toGrayscale(imgData) {
-            const d = imgData.data;
-            const len = d.length / 4;
-            const gray = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-                const idx = i * 4;
-                gray[i] = (d[idx] * 77 + d[idx + 1] * 150 + d[idx + 2] * 29) >> 8;
-            }
-            return gray;
-        }
-
-        function adaptiveThresholdBinary(gray, w, h) {
-            const binary = new Uint8Array(w * h);
-            const integral = new Uint32Array((w + 1) * (h + 1));
-            for (let y = 0; y < h; y++) {
-                let rowSum = 0;
-                for (let x = 0; x < w; x++) {
-                    rowSum += gray[y * w + x];
-                    integral[(y + 1) * (w + 1) + (x + 1)] = integral[y * (w + 1) + (x + 1)] + rowSum;
-                }
-            }
-
-            const halfWin = Math.max(16, Math.round(w / 24));
-            const C = 22;
-
-            for (let y = 0; y < h; y++) {
-                const y1 = Math.max(0, y - halfWin);
-                const y2 = Math.min(h - 1, y + halfWin);
-                for (let x = 0; x < w; x++) {
-                    const x1 = Math.max(0, x - halfWin);
-                    const x2 = Math.min(w - 1, x + halfWin);
-                    const count = (x2 - x1 + 1) * (y2 - y1 + 1);
-                    const sum = integral[(y2 + 1) * (w + 1) + (x2 + 1)]
-                              - integral[y1 * (w + 1) + (x2 + 1)]
-                              - integral[(y2 + 1) * (w + 1) + x1]
-                              + integral[y1 * (w + 1) + x1];
-                    binary[y * w + x] = gray[y * w + x] < (sum / count - C) ? 1 : 0;
-                }
-            }
-            return binary;
-        }
-
-        function detectFourCornerAnchors(binary, w, h) {
-            const visited = new Uint8Array(w * h);
-            const candidates = [];
-            const stack = new Int32Array(w * h);
-
-            for (let y = 8; y < h - 8; y += 2) {
-                for (let x = 8; x < w - 8; x += 2) {
-                    const idx = y * w + x;
-                    if (binary[idx] === 1 && !visited[idx]) {
-                        let minX = x, maxX = x, minY = y, maxY = y;
-                        let area = 0;
-                        let sp = 0;
-                        stack[sp++] = idx;
-                        visited[idx] = 1;
-
-                        while (sp > 0) {
-                            const curr = stack[--sp];
-                            const cy = Math.floor(curr / w);
-                            const cx = curr - cy * w;
-                            area++;
-
-                            if (cx < minX) minX = cx;
-                            if (cx > maxX) maxX = cx;
-                            if (cy < minY) minY = cy;
-                            if (cy > maxY) maxY = cy;
-
-                            if (cx > 0 && binary[curr - 1] === 1 && !visited[curr - 1]) { visited[curr - 1] = 1; stack[sp++] = curr - 1; }
-                            if (cx < w - 1 && binary[curr + 1] === 1 && !visited[curr + 1]) { visited[curr + 1] = 1; stack[sp++] = curr + 1; }
-                            if (cy > 0 && binary[curr - w] === 1 && !visited[curr - w]) { visited[curr - w] = 1; stack[sp++] = curr - w; }
-                            if (cy < h - 1 && binary[curr + w] === 1 && !visited[curr + w]) { visited[curr + w] = 1; stack[sp++] = curr + w; }
-                        }
-
-                        const bw = maxX - minX + 1;
-                        const bh = maxY - minY + 1;
-                        const aspect = bw / bh;
-                        const solidity = area / (bw * bh);
-
-                        if (bw >= 14 && bw <= w * 0.12 && aspect >= 0.72 && aspect <= 1.38 && solidity >= 0.72) {
-                            candidates.push({
-                                x: (minX + maxX) / 2,
-                                y: (minY + maxY) / 2,
-                                size: (bw + bh) / 2
-                            });
-                        }
-                    }
-                }
-            }
-
-            if (candidates.length < 4) return null;
-
-            let tl = null, tr = null, bl = null, br = null;
-            let minSum = Infinity, maxSum = -Infinity, minDiff = Infinity, maxDiff = -Infinity;
-
-            candidates.forEach(c => {
-                const sum = c.x + c.y;
-                const diff = c.x - c.y;
-                if (sum < minSum) { minSum = sum; tl = c; }
-                if (sum > maxSum) { maxSum = sum; br = c; }
-                if (diff > maxDiff) { maxDiff = diff; tr = c; }
-                if (diff < minDiff) { minDiff = diff; bl = c; }
-            });
-
-            if (!tl || !tr || !bl || !br) return null;
-
-            const topW = Math.hypot(tr.x - tl.x, tr.y - tl.y);
-            const botW = Math.hypot(br.x - bl.x, br.y - bl.y);
-            const leftH = Math.hypot(bl.x - tl.x, bl.y - tl.y);
-            const rightH = Math.hypot(br.x - tr.x, br.y - tr.y);
-
-            if (topW < w * 0.25 || botW < w * 0.25 || leftH < h * 0.35 || rightH < h * 0.35) return null;
-            if (Math.abs(topW - botW) / topW > 0.35 || Math.abs(leftH - rightH) / leftH > 0.35) return null;
-
-            return { tl, tr, bl, br };
         }
 
         function drawCameraGuide(ctx, w, h, isLocked) {
@@ -1424,7 +1654,6 @@
             santriSel.innerHTML = '<option value="">-- Pilih Nama Santri --</option>' + optionsHtml;
             santriSel.disabled = false;
 
-            // Otomatis pilih santri pertama yang belum discan
             if (firstUnscanned) {
                 santriSel.value = firstUnscanned;
             } else if (list.length > 0) {
@@ -1436,15 +1665,6 @@
         }
 
         function onScanSantriChange() {
-            // Jika user memilih santri yang berbeda dari lastScanInfo,
-            // matikan mode rescan agar scan berikutnya auto-advance ke santri berikutnya
-            const className = document.getElementById('scan-select-class').value;
-            const santriName = document.getElementById('scan-select-santri').value;
-            const li = APP_STATE.lastScanInfo;
-            if (APP_STATE.rescanMode && li && (li.className !== className || li.santriName !== santriName)) {
-                APP_STATE.rescanMode = false;
-                updateRescanBar();
-            }
             updateScanButtonState();
         }
 
@@ -1465,6 +1685,7 @@
 
         /**
          * Menyalakan kamera belakang untuk 1x scan otomatis lalu mati seketika.
+         * Dilengkapi timer 5 detik untuk memunculkan tombol Scan Ulang bila belum terdeteksi.
          */
         async function startSingleShotCamera() {
             if (!APP_STATE.scanForKeyMode) {
@@ -1477,7 +1698,9 @@
             }
 
             try {
-                stopCamera(false);
+                stopCamera(false, false);
+                hideRetryPrompts();
+
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode: { ideal: 'environment' },
@@ -1497,10 +1720,16 @@
 
                 document.getElementById('scanner-idle-overlay').classList.add('hidden');
                 document.getElementById('btn-manual-snap').disabled = false;
-                document.getElementById('btn-repeat-scan').disabled = false;
+                document.getElementById('btn-rescan-bar').disabled = false;
                 document.getElementById('btn-stop-cam').disabled = false;
                 document.getElementById('scanner-status-dot').className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping';
                 document.getElementById('scanner-status-text').textContent = 'Kamera Aktif — Arahkan ke LJK (Auto 1x Scan)...';
+
+                APP_STATE.scanTimeoutTimer = setTimeout(() => {
+                    if (APP_STATE.isScanningLoop) {
+                        showRetryPrompts();
+                    }
+                }, 5000);
 
                 APP_STATE.isScanningLoop = true;
                 requestAnimationFrame(singleShotLoop);
@@ -1510,17 +1739,67 @@
             }
         }
 
-        function stopCamera(showIdleOverlay = true) {
+        function showRetryPrompts() {
+            const banner = document.getElementById('scanner-timeout-banner');
+            const topBtn = document.getElementById('btn-retry-top');
+            if (banner) banner.classList.remove('hidden');
+            if (topBtn) {
+                topBtn.classList.remove('hidden');
+                topBtn.classList.add('inline-flex');
+            }
+            document.getElementById('scanner-status-text').textContent = 'Belum terdeteksi — Klik "Scan Ulang" untuk menyegarkan kamera';
+        }
+
+        function hideRetryPrompts() {
+            if (APP_STATE.scanTimeoutTimer) {
+                clearTimeout(APP_STATE.scanTimeoutTimer);
+                APP_STATE.scanTimeoutTimer = null;
+            }
+            const banner = document.getElementById('scanner-timeout-banner');
+            const topBtn = document.getElementById('btn-retry-top');
+            if (banner) banner.classList.add('hidden');
+            if (topBtn) {
+                topBtn.classList.add('hidden');
+                topBtn.classList.remove('inline-flex');
+            }
+        }
+
+        function retryCurrentScan() {
+            APP_STATE.stableLockCounter = 0;
+            APP_STATE.lastAnchorSnapshot = null;
+            hideRetryPrompts();
+            showToast('Menyegarkan kamera untuk scan ulang...', 'info');
+            startSingleShotCamera();
+        }
+
+        function rescanLastStudent() {
+            if (!APP_STATE.lastScannedTarget) return;
+            const { className, santriName } = APP_STATE.lastScannedTarget;
+            document.getElementById('scan-select-class').value = className;
+            onScanClassChange();
+            document.getElementById('scan-select-santri').value = santriName;
+            updateScanButtonState();
+            startSingleShotCamera();
+        }
+
+        function stopCamera(showIdleOverlay = true, resetKeyMode = true) {
             APP_STATE.isScanningLoop = false;
+            hideRetryPrompts();
+
             if (APP_STATE.cameraStream) {
                 APP_STATE.cameraStream.getTracks().forEach(track => track.stop());
                 APP_STATE.cameraStream = null;
             }
             document.getElementById('btn-manual-snap').disabled = true;
-            document.getElementById('btn-repeat-scan').disabled = true;
+            document.getElementById('btn-rescan-bar').disabled = true;
             document.getElementById('btn-stop-cam').disabled = true;
             document.getElementById('scanner-status-dot').className = 'w-2.5 h-2.5 rounded-full bg-slate-500';
             document.getElementById('scanner-status-text').textContent = 'Kamera Mati (Siaga 1x Scan)';
+
+            if (resetKeyMode && APP_STATE.scanForKeyMode) {
+                APP_STATE.scanForKeyMode = false;
+                updateScanModeBadge();
+            }
 
             if (showIdleOverlay) {
                 document.getElementById('scanner-idle-overlay').classList.remove('hidden');
@@ -1536,7 +1815,6 @@
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
                 const res = processOMRImage(video, canvas, !APP_STATE.scanForKeyMode);
                 if (res && res.detected) {
-                    // Cek kestabilan 4 sudut selama 4 frame berturut-turut agar foto tidak blur
                     if (isAnchorPositionStable(res.anchors)) {
                         APP_STATE.stableLockCounter++;
                     } else {
@@ -1547,8 +1825,7 @@
                     document.getElementById('scanner-status-text').textContent = `Mengunci LJK (${APP_STATE.stableLockCounter}/4)...`;
 
                     if (APP_STATE.stableLockCounter >= 4) {
-                        // Ambil 1x tangkapan, matikan kamera segera, dan proses!
-                        stopCamera(false);
+                        stopCamera(false, false);
                         finalizeOMRScan(res);
                         return;
                     }
@@ -1579,196 +1856,17 @@
 
             const res = processOMRImage(video, canvas, !APP_STATE.scanForKeyMode);
             if (res && res.detected) {
-                stopCamera(false);
+                stopCamera(false, false);
                 finalizeOMRScan(res);
             } else {
-                showToast('4 kotak jangkar sudut belum terbaca jelas. Luruskan posisi kertas LJK.', 'warning');
+                showRetryPrompts();
+                showToast('4 kotak jangkar sudut belum terbaca jelas. Luruskan kertas atau klik Scan Ulang.', 'warning');
             }
-        }
-
-        /**
-         * ULANG SCAN MANUAL — ambil ulang 1x foto LJK untuk santri yang SAMA,
-         * tanpa mematikan kamera lebih dulu dan tanpa auto-advance ke santri berikutnya.
-         * Berguna saat hasil scan pertama kurang akurat (LJK miring / blur / cahaya tidak rata).
-         */
-        function repeatScanManual() {
-            const video = document.getElementById('camera-video');
-            const canvas = document.getElementById('scanner-canvas');
-            if (!APP_STATE.cameraStream || video.readyState !== video.HAVE_ENOUGH_DATA) {
-                showToast('Kamera belum siap. Tunggu hingga pratinjau tampil.', 'warning');
-                return;
-            }
-
-            // Paksa mode rescan agar setelah finalizeOMRScan, santri TIDAK auto-advance
-            APP_STATE.rescanMode = true;
-
-            const res = processOMRImage(video, canvas, !APP_STATE.scanForKeyMode);
-            if (res && res.detected) {
-                // Tidak mematikan kamera agar bisa langsung menjepret ulang jika perlu
-                finalizeOMRScan(res);
-                document.getElementById('scanner-status-text').textContent = '✓ Scan ulang selesai. Bisa langsung menjepret lagi atau matikan kamera.';
-            } else {
-                showToast('Gagal membaca ulang 4 kotak sudut. Luruskan & stabilkan kertas LJK, lalu klik lagi.', 'warning');
-                APP_STATE.rescanMode = false;
-            }
-        }
-
-        /**
-         * Memulai ULANG SCAN untuk santri terakhir yang berhasil dipindai.
-         * Memakai kembali Kelas & Nama Santri yang tersimpan di APP_STATE.lastScanInfo.
-         */
-        function rescanLastSantriCamera() {
-            if (!APP_STATE.lastScanInfo || !APP_STATE.lastScanInfo.className || !APP_STATE.lastScanInfo.santriName) {
-                showToast('Belum ada santri yang dipindai sebelumnya. Lakukan scan pertama terlebih dahulu.', 'warning');
-                return;
-            }
-            if (Object.keys(APP_STATE.answerKey).length === 0) {
-                showToast('Kunci jawaban masih kosong! Skor ulang akan tetap 0. Isi kunci dahulu di Bilah 2.', 'warning');
-            }
-
-            // Set dropdown ke santri terakhir
-            document.getElementById('scan-select-class').value = APP_STATE.lastScanInfo.className;
-            onScanClassChange();
-            document.getElementById('scan-select-santri').value = APP_STATE.lastScanInfo.santriName;
-            updateScanButtonState();
-
-            // Aktifkan mode rescan agar TIDAK auto-advance ke santri berikutnya
-            APP_STATE.rescanMode = true;
-            updateRescanBar();
-
-            showToast(`Ulang scan untuk: ${APP_STATE.lastScanInfo.santriName} (${APP_STATE.lastScanInfo.className})`, 'info');
-            startSingleShotCamera();
-        }
-
-        /**
-         * Upload ulang foto LJK untuk santri terakhir (mode rescan).
-         */
-        function handleRescanImageUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            // Jika ada lastScanInfo, pakai itu; jika tidak, pakai pilihan dropdown aktif
-            const targetClass = APP_STATE.lastScanInfo?.className || document.getElementById('scan-select-class').value;
-            const targetName = APP_STATE.lastScanInfo?.santriName || document.getElementById('scan-select-santri').value;
-
-            if (!targetClass || !targetName) {
-                showToast('Belum ada santri target untuk diulang scan. Lakukan scan pertama dahulu.', 'warning');
-                event.target.value = '';
-                return;
-            }
-            if (Object.keys(APP_STATE.answerKey).length === 0) {
-                showToast('Kunci jawaban masih kosong! Skor ulang akan 0. Isi kunci dahulu di Bilah 2.', 'warning');
-            }
-
-            // Set dropdown sesuai target
-            document.getElementById('scan-select-class').value = targetClass;
-            onScanClassChange();
-            document.getElementById('scan-select-santri').value = targetName;
-            updateScanButtonState();
-
-            APP_STATE.rescanMode = true;
-            updateRescanBar();
-
-            stopCamera(false);
-            document.getElementById('scanner-idle-overlay').classList.add('hidden');
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = img.width;
-                    tempCanvas.height = img.height;
-                    tempCanvas.getContext('2d').drawImage(img, 0, 0);
-
-                    const displayCanvas = document.getElementById('scanner-canvas');
-                    const res = processOMRImage(tempCanvas, displayCanvas, true);
-                    if (res && res.detected) {
-                        finalizeOMRScan(res);
-                    } else {
-                        showToast('4 kotak jangkar tidak terbaca pada foto ulang. Pastikan seluruh LJK terlihat & fokus.', 'error');
-                    }
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-            event.target.value = '';
-        }
-
-        /**
-         * Batal dari mode rescan — kembali ke mode scan normal (auto-advance ke santri berikutnya).
-         */
-        function cancelRescanMode() {
-            APP_STATE.rescanMode = false;
-            updateRescanBar();
-            showToast('Mode rescan dibatalkan. Scan berikutnya akan lanjut ke santri berikutnya.', 'info');
-        }
-
-        /**
-         * Membuka modal pratinjau foto LJK terkoreksi dari kartu hasil scan terakhir.
-         */
-        function viewLastScanPhoto() {
-            if (!APP_STATE.lastScanInfo) {
-                showToast('Belum ada hasil scan untuk ditampilkan.', 'info');
-                return;
-            }
-            const rec = APP_STATE.scannedRecords[getRecordKey(APP_STATE.lastScanInfo.className, APP_STATE.lastScanInfo.santriName)];
-            if (!rec || !rec.annotatedDataUrl) {
-                showToast('Foto LJK terkoreksi tidak tersedia untuk scan ini (data lama mungkin tanpa gambar).', 'warning');
-                return;
-            }
-            openPhotoModal(rec.santriName, rec.className, rec.annotatedDataUrl);
-        }
-
-        function openPhotoModal(santriName, className, dataUrl) {
-            document.getElementById('photo-modal-title').textContent = 'Foto LJK Terkoreksi';
-            document.getElementById('photo-modal-sub').textContent = `${santriName} • Kelas ${className}`;
-            document.getElementById('photo-modal-img').src = dataUrl;
-            const modal = document.getElementById('photo-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            lucide.createIcons();
-        }
-
-        function closePhotoModal() {
-            const modal = document.getElementById('photo-modal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-
-        /**
-         * Memperbarui tampilan bar rescan (muncul hanya bila ada lastScanInfo).
-         */
-        function updateRescanBar() {
-            const bar = document.getElementById('rescan-bar');
-            const nameEl = document.getElementById('rescan-last-name');
-            const classEl = document.getElementById('rescan-last-class');
-            const btnRescanLast = document.getElementById('btn-rescan-last');
-            const btnViewPhoto = document.getElementById('btn-view-photo');
-            const lblRescanUpload = document.getElementById('lbl-rescan-last-upload');
-
-            if (APP_STATE.lastScanInfo) {
-                bar?.classList.remove('hidden');
-                if (nameEl) nameEl.textContent = APP_STATE.lastScanInfo.santriName;
-                if (classEl) classEl.textContent = APP_STATE.lastScanInfo.className;
-                if (btnRescanLast) btnRescanLast.disabled = false;
-                if (lblRescanUpload) lblRescanUpload.classList.remove('opacity-50', 'pointer-events-none');
-
-                const rec = APP_STATE.scannedRecords[getRecordKey(APP_STATE.lastScanInfo.className, APP_STATE.lastScanInfo.santriName)];
-                if (btnViewPhoto) btnViewPhoto.disabled = !rec || !rec.annotatedDataUrl;
-            } else {
-                bar?.classList.add('hidden');
-                if (btnRescanLast) btnRescanLast.disabled = true;
-                if (btnViewPhoto) btnViewPhoto.disabled = true;
-                if (lblRescanUpload) lblRescanUpload.classList.add('opacity-50', 'pointer-events-none');
-            }
-            lucide.createIcons();
         }
 
         function finalizeOMRScan(omrResult) {
             playBeepSuccess();
 
-            // Jika sedang dalam mode scan kunci jawaban
             if (APP_STATE.scanForKeyMode) {
                 APP_STATE.answerKey = {};
                 let count = 0;
@@ -1788,7 +1886,6 @@
                 return;
             }
 
-            // Mode koreksi jawaban santri
             const className = document.getElementById('scan-select-class').value;
             const santriName = document.getElementById('scan-select-santri').value;
 
@@ -1798,41 +1895,19 @@
             }
 
             if (Object.keys(APP_STATE.answerKey).length === 0) {
-                showToast('⚠ Kunci jawaban masih kosong — semua jawaban dianggap SALAH (nilai 0). Isi kunci di Bilah 2 sebelum scan santri.', 'warning');
-            } else {
-                const filled = Object.values(APP_STATE.answerKey).filter(v => v).length;
-                if (filled < APP_STATE.config.questionCount) {
-                    showToast(`Kunci jawaban baru ${filled}/${APP_STATE.config.questionCount} soal terisi. Soal kosong dianggap salah.`, 'warning');
-                }
+                showToast('Peringatan: Kunci jawaban masih kosong! Skor akan bernilai 0.', 'warning');
             }
 
             const evaluation = evaluateStudentAnswers(className, santriName, omrResult.answers, omrResult.annotatedDataUrl);
             APP_STATE.scannedRecords[getRecordKey(className, santriName)] = evaluation;
+            APP_STATE.lastScannedTarget = { className, santriName };
             persistState();
 
-            // Simpan info santri terakhir untuk tombol Ulang Scan
-            APP_STATE.lastScanInfo = { className, santriName };
-
-            // Tampilkan hasil scan di panel kanan
             renderLastScanCard(evaluation);
-
-            // Perbarui dropdown santri:
-            // - Mode rescan (tombol Ulang Scan dipakai): KELAS & SANTRI TETAP SAMA (tidak auto-advance)
-            // - Mode normal: kelas tetap, santri otomatis pindah ke santri berikutnya yang belum discan
-            if (APP_STATE.rescanMode) {
-                // Tetap di santri yang sama — paksa dropdown tidak lompat
-                document.getElementById('scan-select-class').value = className;
-                onScanClassChange();
-                document.getElementById('scan-select-santri').value = santriName;
-                updateScanButtonState();
-            } else {
-                onScanClassChange();
-            }
+            onScanClassChange();
             renderDashboardAndTable();
-            updateRescanBar();
 
-            const rescanTag = APP_STATE.rescanMode ? ' (Ulang Scan)' : '';
-            showToast(`Tersimpan${rescanTag}! ${santriName} (${className}) — Nilai: ${evaluation.finalScore}`, 'success');
+            showToast(`Tersimpan! ${santriName} (${className}) — Nilai: ${evaluation.finalScore}`, 'success');
         }
 
         function evaluateStudentAnswers(className, santriName, detectedAnswers, annotatedDataUrl) {
@@ -1886,6 +1961,12 @@
             document.getElementById('res-blank').textContent = evalData.blank;
             document.getElementById('last-scan-time').textContent = `Pukul ${evalData.timestamp}`;
 
+            const rescanLastBtn = document.getElementById('btn-rescan-last');
+            if (rescanLastBtn) {
+                rescanLastBtn.classList.remove('hidden');
+                rescanLastBtn.classList.add('inline-flex');
+            }
+
             const container = document.getElementById('scan-item-breakdown');
             container.innerHTML = evalData.details.map(d => {
                 let cls = 'bg-slate-100 text-slate-600 border-slate-200';
@@ -1902,12 +1983,8 @@
                     </div>
                 `;
             }).join('');
-
-            // Aktifkan tombol rescan & foto di kartu hasil scan terakhir
-            updateRescanBar();
         }
 
-        // Upload foto LJK santri
         function handleStudentImageUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1920,7 +1997,7 @@
                 return;
             }
 
-            stopCamera(false);
+            stopCamera(false, false);
             document.getElementById('scanner-idle-overlay').classList.add('hidden');
 
             const reader = new FileReader();
@@ -1946,7 +2023,6 @@
             event.target.value = '';
         }
 
-        // Simulasi Scan Demo mengikuti Santri & Kelas yang dipilih
         function runSimulatedStudentScan() {
             const className = document.getElementById('scan-select-class').value;
             const santriName = document.getElementById('scan-select-santri').value;
@@ -1955,7 +2031,7 @@
                 return;
             }
 
-            stopCamera(false);
+            stopCamera(false, false);
             document.getElementById('scanner-idle-overlay').classList.add('hidden');
 
             if (Object.keys(APP_STATE.answerKey).length === 0) {
@@ -1975,14 +2051,14 @@
                 }
             }
 
-            // Gambar LJK terisi ke kanvas
+            // Gambar LJK terisi ke kanvas sesuai orientasi aktif
             const cleanLJK = document.createElement('canvas');
             renderLJKCanvas(cleanLJK, simAnswers, { className, santriName });
 
-            // Simulasikan foto kamera miring tipis di meja
+            const pad = 70;
             const camCanvas = document.createElement('canvas');
-            camCanvas.width = 1000;
-            camCanvas.height = 1360;
+            camCanvas.width = cleanLJK.width + pad * 2;
+            camCanvas.height = cleanLJK.height + pad * 2;
             const ctx = camCanvas.getContext('2d');
             ctx.fillStyle = '#1e293b';
             ctx.fillRect(0, 0, camCanvas.width, camCanvas.height);
@@ -1990,7 +2066,7 @@
             ctx.save();
             ctx.translate(camCanvas.width / 2, camCanvas.height / 2);
             ctx.rotate((Math.random() * 4 - 2) * (Math.PI / 180));
-            ctx.drawImage(cleanLJK, -430, -610, 860, 1220);
+            ctx.drawImage(cleanLJK, -cleanLJK.width / 2, -cleanLJK.height / 2, cleanLJK.width, cleanLJK.height);
             ctx.restore();
 
             const displayCanvas = document.getElementById('scanner-canvas');
@@ -2127,8 +2203,6 @@
             const selectedFilter = document.getElementById('rekap-filter-class').value || 'ALL';
             const searchQuery = (document.getElementById('rekap-search-input').value || '').trim().toUpperCase();
 
-            // Perbarui label tombol download kelas aktif
-            const btnExportCurrent = document.getElementById('btn-export-current-class');
             const lblExportCurrent = document.getElementById('lbl-export-current-class');
             if (selectedFilter === 'ALL') {
                 lblExportCurrent.textContent = 'Download Excel Semua Kelas';
@@ -2136,7 +2210,6 @@
                 lblExportCurrent.textContent = `Download Excel Kelas ${selectedFilter}`;
             }
 
-            // Susun daftar baris berdasarkan filter kelas
             const classesToShow = selectedFilter === 'ALL' ? Object.keys(APP_STATE.santriDB).sort() : [selectedFilter];
             const rows = [];
 
@@ -2149,7 +2222,6 @@
                 });
             });
 
-            // Hitung statistik ringkas
             const totalSantri = rows.length;
             const scannedRows = rows.filter(r => r.record !== null);
             const scannedCount = scannedRows.length;
@@ -2175,7 +2247,6 @@
             document.getElementById('rekap-table-title').textContent =
                 selectedFilter === 'ALL' ? 'Daftar Nilai Santri — Semua Kelas (7A - 9D)' : `Daftar Nilai Santri — Kelas ${selectedFilter}`;
 
-            // Render tabel
             const tbody = document.getElementById('rekap-table-body');
             if (rows.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="10" class="py-10 text-center text-slate-400 text-sm">Tidak ada data santri yang cocok dengan filter pencarian.</td></tr>`;
@@ -2202,9 +2273,6 @@
                                     <button onclick="openDetailModal('${encodedKey}')" class="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 transition" title="Lihat Detail Jawaban">
                                         <i data-lucide="eye" class="w-4 h-4"></i>
                                     </button>
-                                    <button onclick="rescanSpecificSantri('${encodedKey}')" class="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition" title="Ulang Scan Santri Ini">
-                                        <i data-lucide="rotate-cw" class="w-4 h-4"></i>
-                                    </button>
                                     <button onclick="deleteSingleRecord('${encodedKey}')" class="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition" title="Hapus Nilai">
                                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                                     </button>
@@ -2225,7 +2293,7 @@
                             <td class="py-3 px-4 text-right font-semibold">-</td>
                             <td class="py-3 px-4 text-center text-xs">-</td>
                             <td class="py-3 px-4 text-center">
-                                <button onclick="jumpToScanSantri('${item.className}', '${item.santriName.replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition">
+                                <button data-class="${item.className}" data-santri="${item.santriName.replace(/"/g, '&quot;')}" onclick="jumpToScanSantri(this.dataset.class, this.dataset.santri)" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition">
                                     Scan
                                 </button>
                             </td>
@@ -2243,31 +2311,6 @@
             onScanClassChange();
             document.getElementById('scan-select-santri').value = santriName;
             updateScanButtonState();
-        }
-
-        /**
-         * Melompat ke tab scan dan langsung memulai ULANG SCAN untuk santri spesifik
-         * (santri yang sudah punya nilai). Dipanggil dari tombol Scan Ulang di Dashboard.
-         */
-        function rescanSpecificSantri(encodedKey) {
-            const key = decodeURIComponent(encodedKey);
-            const rec = APP_STATE.scannedRecords[key];
-            if (!rec) {
-                showToast('Data santri tidak ditemukan.', 'warning');
-                return;
-            }
-            switchTab('scan');
-            document.getElementById('scan-select-class').value = rec.className;
-            onScanClassChange();
-            document.getElementById('scan-select-santri').value = rec.santriName;
-            updateScanButtonState();
-
-            // Set lastScanInfo & aktifkan mode rescan
-            APP_STATE.lastScanInfo = { className: rec.className, santriName: rec.santriName };
-            APP_STATE.rescanMode = true;
-            updateRescanBar();
-
-            showToast(`Ulang scan: ${rec.santriName} (${rec.className}). Klik "Mulai Scan LJK" untuk memulai kamera.`, 'info');
         }
 
         function openDetailModal(encodedKey) {
@@ -2339,10 +2382,6 @@
             });
         }
 
-        /**
-         * FUNGSI EKSPOR EXCEL (.XLSX) DENGAN SHEETJS
-         * Tanpa kolom Nomor Peserta!
-         */
         function buildClassWorksheetData(className) {
             const { school, title, examDate, questionCount } = APP_STATE.config;
             const list = APP_STATE.santriDB[className] || [];
@@ -2386,15 +2425,15 @@
 
             const ws = XLSX.utils.aoa_to_sheet(sheetRows);
             ws['!cols'] = [
-                { wch: 5 },  // No
-                { wch: 38 }, // Nama Santri
-                { wch: 8 },  // Kelas
-                { wch: 15 }, // Status
-                { wch: 8 },  // Benar
-                { wch: 8 },  // Salah
-                { wch: 14 }, // Kosong
-                { wch: 12 }, // Nilai Akhir
-                { wch: 14 }  // Waktu Scan
+                { wch: 5 },
+                { wch: 38 },
+                { wch: 8 },
+                { wch: 15 },
+                { wch: 8 },
+                { wch: 8 },
+                { wch: 14 },
+                { wch: 12 },
+                { wch: 14 }
             ];
             return ws;
         }
@@ -2491,12 +2530,12 @@
                 APP_STATE.santriDB = DATA_SANTRI;
                 const total = Object.values(DATA_SANTRI).reduce((acc, arr) => acc + arr.length, 0);
                 badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800';
-                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span><span>Sumber Data: data_santri.js aktif (${total} santri)</span>`;
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span><span>Database Santri Aktif (${total} santri)</span>`;
             } else {
                 APP_STATE.santriDB = FALLBACK_DATA_SANTRI;
                 const total = Object.values(FALLBACK_DATA_SANTRI).reduce((acc, arr) => acc + arr.length, 0);
-                badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800';
-                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span><span>Mode Standalone (${total} santri bawaan)</span>`;
+                badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800';
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span><span>Database Santri Siap (${total} santri • 14 kelas)</span>`;
             }
         }
 
@@ -2513,7 +2552,6 @@
                     if (file.name.endsWith('.json')) {
                         parsedObj = JSON.parse(text);
                     } else {
-                        // Ekstrak objek DATA_SANTRI dari file .js
                         const fn = new Function(`${text}; return typeof DATA_SANTRI !== 'undefined' ? DATA_SANTRI : null;`);
                         parsedObj = fn();
                     }
@@ -2541,20 +2579,23 @@
         }
 
         /**
-         * 10. NAVIGASI TAB, KONFIGURASI, & LOCALSTORAGE
+         * 10. NAVIGASI TAB, ORIENTASI LJK, & KONFIGURASI
          */
         function switchTab(tabName) {
             if (tabName !== 'scan') {
                 stopCamera(true);
             }
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
-            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            const targetPanel = document.getElementById(`tab-${tabName}`);
+            if (targetPanel) targetPanel.classList.remove('hidden');
 
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.className = 'tab-btn flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all text-slate-600 hover:bg-slate-100';
             });
-            document.getElementById(`tab-btn-${tabName}`).className =
-                'tab-btn flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all bg-indigo-600 text-white shadow-sm';
+            const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+            if (activeBtn) {
+                activeBtn.className = 'tab-btn flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all bg-indigo-600 text-white shadow-sm';
+            }
 
             if (tabName === 'setup') {
                 renderLJKCanvas(document.getElementById('ljk-template-canvas'));
@@ -2567,8 +2608,53 @@
             }
         }
 
+        function setOrientation(orient) {
+            APP_STATE.config.orientation = orient === 'landscape' ? 'landscape' : 'portrait';
+            const isLand = APP_STATE.config.orientation === 'landscape';
+
+            const btnP = document.getElementById('btn-orient-portrait');
+            const btnL = document.getElementById('btn-orient-landscape');
+            const activeCls = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border-2 border-indigo-600 bg-indigo-50 text-indigo-700 text-xs sm:text-sm font-bold transition';
+            const idleCls = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 text-xs sm:text-sm font-semibold transition';
+
+            if (btnP && btnL) {
+                btnP.className = isLand ? idleCls : activeCls;
+                btnL.className = isLand ? activeCls : idleCls;
+            }
+
+            const hint = document.getElementById('orientation-hint');
+            if (hint) {
+                hint.textContent = isLand
+                    ? 'Mode Landscape: Identitas ujian, nama santri, kelas & nilai di kolom kiri (tinggi ramping 1/4–1/3 A4 Portrait).'
+                    : 'Mode Portrait: Identitas ujian & santri di atas, bidang opsi rapat di bawah.';
+            }
+
+            const paperLabel = document.getElementById('preview-paper-label');
+            if (paperLabel) {
+                paperLabel.textContent = isLand
+                    ? 'Pratinjau LJK Ramping (Landscape)'
+                    : 'Pratinjau LJK Ramping (Portrait)';
+            }
+
+            const printArea = document.getElementById('print-area');
+            if (printArea) {
+                printArea.className = isLand
+                    ? 'bg-white shadow-xl border border-slate-300 rounded-sm p-2 sm:p-3 w-full max-w-[780px] flex items-center justify-center relative select-none transition-all duration-200'
+                    : 'bg-white shadow-xl border border-slate-300 rounded-sm p-2 sm:p-3 w-full max-w-[560px] flex items-center justify-center relative select-none transition-all duration-200';
+            }
+
+            const printStyle = document.getElementById('dynamic-print-style');
+            if (printStyle) {
+                printStyle.textContent = isLand
+                    ? `@media print { #print-area { width: 275mm !important; height: auto !important; } @page { size: A4 landscape; margin: 8mm; } }`
+                    : `@media print { #print-area { width: 190mm !important; height: auto !important; } @page { size: A4 portrait; margin: 8mm; } }`;
+            }
+
+            renderLJKCanvas(document.getElementById('ljk-template-canvas'));
+        }
+
         function updateConfig() {
-            APP_STATE.config.school = document.getElementById('cfg-school').value || 'LEMBAGA PENDIDIKAN';
+            APP_STATE.config.school = document.getElementById('cfg-school').value || 'SMP IT Putra Abu Hurairah Mataram';
             APP_STATE.config.title = document.getElementById('cfg-title').value || 'Ujian Sekolah';
             APP_STATE.config.examDate = document.getElementById('cfg-date').value || '';
             APP_STATE.config.questionCount = parseInt(document.getElementById('cfg-question-count').value) || 40;
@@ -2587,10 +2673,11 @@
         function downloadLJKImage() {
             const canvas = document.getElementById('ljk-template-canvas');
             const link = document.createElement('a');
-            link.download = `Template_LJK_${APP_STATE.config.questionCount}_Soal.png`;
+            const orient = APP_STATE.config.orientation === 'landscape' ? 'Landscape' : 'Portrait';
+            link.download = `Template_LJK_${orient}_${APP_STATE.config.questionCount}_Soal.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
-            showToast('Gambar Template LJK PNG berhasil diunduh.', 'success');
+            showToast(`Gambar Template LJK (${orient}) PNG berhasil diunduh.`, 'success');
         }
 
         function updateThresholdLabel(val) {
@@ -2599,48 +2686,10 @@
         }
 
         function persistState() {
-            try {
-                // Simpan state tanpa menyimpan gambar base64 berukuran besar jika penuh
-                const compactRecords = {};
-                Object.entries(APP_STATE.scannedRecords).forEach(([k, v]) => {
-                    const { annotatedDataUrl, ...rest } = v;
-                    compactRecords[k] = rest;
-                });
-
-                localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                    config: APP_STATE.config,
-                    answerKey: APP_STATE.answerKey,
-                    scannedRecords: compactRecords,
-                    lastScanInfo: APP_STATE.lastScanInfo || null
-                }));
-            } catch (e) {
-                console.warn('Gagal menyimpan ke localStorage:', e);
-            }
+            // Seluruh state ujian dan nilai santri tersimpan aktif di memori sesi aplikasi
         }
 
         function loadPersistedState() {
-            try {
-                const raw = localStorage.getItem(STORAGE_KEY);
-                if (raw) {
-                    const parsed = JSON.parse(raw);
-                    if (parsed.config) {
-                        if (!parsed.config.school || parsed.config.school.trim().toUpperCase() === 'PONDOK PESANTREN MODERN AL-IKHLAS') {
-                            parsed.config.school = 'SMP IT Putra Abu Hurairah Mataram';
-                        }
-                        APP_STATE.config = { ...APP_STATE.config, ...parsed.config };
-                    }
-                    if (parsed.answerKey) APP_STATE.answerKey = parsed.answerKey;
-                    if (parsed.scannedRecords) APP_STATE.scannedRecords = parsed.scannedRecords;
-                    if (parsed.lastScanInfo) {
-                        // Hanya valid jika record-nya masih ada
-                        const li = parsed.lastScanInfo;
-                        if (li && li.className && li.santriName && APP_STATE.scannedRecords[getRecordKey(li.className, li.santriName)]) {
-                            APP_STATE.lastScanInfo = li;
-                        }
-                    }
-                }
-            } catch (e) {}
-
             document.getElementById('cfg-school').value = APP_STATE.config.school;
             document.getElementById('cfg-title').value = APP_STATE.config.title;
             document.getElementById('cfg-date').value = APP_STATE.config.examDate;
@@ -2648,6 +2697,7 @@
             document.getElementById('cfg-options').value = String(APP_STATE.config.optionCount);
             document.getElementById('cfg-max-score').value = APP_STATE.config.maxScore;
 
+            setOrientation(APP_STATE.config.orientation);
             updateConfig();
         }
 
@@ -2710,8 +2760,6 @@
             loadPersistedState();
             populateClassDropdowns();
             renderDashboardAndTable();
-            updateRescanBar();
-            updateScanModeBadge();
         });
     </script>
 </body>
