@@ -808,6 +808,7 @@
             isScanningLoop: false,
             stableLockCounter: 0,
             lastAnchorSnapshot: null,
+            lastGuideLockedState: null,   // cache status bingkai panduan agar tidak berkedip tiap frame
             scanTimeoutTimer: null,
             lastScannedTarget: null,
             savedPresets: [],
@@ -817,6 +818,9 @@
         const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E'];
         const PRESETS_STORAGE_KEY = 'GUScan_id_saved_presets_v1';
         const ACTIVE_SESSION_KEY = 'GUScan_id_active_session_v1';
+
+        // Canvas pemrosesan reuse (menghindari pembuatan canvas baru tiap frame)
+        let CV_PROC_CANVAS = null;
 
         const CV_BUFFERS = {
             size: 0,
@@ -1448,6 +1452,39 @@
             return { tl, tr, bl, br };
         }
 
+        /**
+         * FASE RINGAN: hanya grayscale + adaptive threshold + deteksi 4 kotak sudut.
+         * Dipakai di setiap frame kamera agar CPU tidak overload. Tidak membaca gelembung,
+         * tidak encode JPEG, tidak menggambar bingkai/penanda. ~3-5x lebih cepat dari processOMRImage.
+         */
+        function detectAnchorsOnly(sourceElement) {
+            const srcW = sourceElement.videoWidth || sourceElement.width;
+            const srcH = sourceElement.videoHeight || sourceElement.height;
+            if (!srcW || !srcH) return null;
+
+            const targetW = 900;
+            const scale = targetW / srcW;
+            const targetH = Math.round(srcH * scale);
+
+            if (!CV_PROC_CANVAS) {
+                CV_PROC_CANVAS = document.createElement('canvas');
+                CV_PROC_CANVAS.width = targetW;
+                CV_PROC_CANVAS.height = targetH;
+            } else if (CV_PROC_CANVAS.width !== targetW || CV_PROC_CANVAS.height !== targetH) {
+                CV_PROC_CANVAS.width = targetW;
+                CV_PROC_CANVAS.height = targetH;
+            }
+            const pCtx = CV_PROC_CANVAS.getContext('2d', { willReadFrequently: true });
+            pCtx.drawImage(sourceElement, 0, 0, targetW, targetH);
+
+            const imgData = pCtx.getImageData(0, 0, targetW, targetH);
+            const gray = toGrayscale(imgData, targetW, targetH);
+            const binary = adaptiveThresholdBinary(gray, targetW, targetH);
+            const anchors = detectFourCornerAnchors(binary, targetW, targetH);
+
+            return anchors ? { anchors, targetW, targetH, procCanvas: CV_PROC_CANVAS, binary } : null;
+        }
+
         function processOMRImage(sourceElement, overlayCanvas = null, showAnswerKeyColors = true) {
             const srcW = sourceElement.videoWidth || sourceElement.width;
             const srcH = sourceElement.videoHeight || sourceElement.height;
@@ -1739,8 +1776,8 @@
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode: { ideal: 'environment' },
-                        width: { ideal: 1280 },
-                        height: { ideal: 960 }
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
                     },
                     audio: false
                 });
@@ -1764,7 +1801,7 @@
                     if (APP_STATE.isScanningLoop) {
                         showRetryPrompts();
                     }
-                }, 5000);
+                }, 12000);
 
                 APP_STATE.isScanningLoop = true;
                 requestAnimationFrame(singleShotLoop);
@@ -1848,30 +1885,95 @@
             const canvas = document.getElementById('scanner-canvas');
 
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                const res = processOMRImage(video, canvas, !APP_STATE.scanForKeyMode);
-                if (res && res.detected) {
-                    if (isAnchorPositionStable(res.anchors)) {
+                // FASE RINGAN: hanya deteksi 4 kotak sudut per frame (tanpa baca gelembung, tanpa encode JPEG)
+                const anchorRes = detectAnchorsOnly(video);
+                if (anchorRes) {
+                    const stable = isAnchorPositionStable(anchorRes.anchors);
+                    if (stable) {
                         APP_STATE.stableLockCounter++;
                     } else {
                         APP_STATE.stableLockCounter = 1;
                     }
-                    APP_STATE.lastAnchorSnapshot = res.anchors;
+                    APP_STATE.lastAnchorSnapshot = anchorRes.anchors;
 
-                    document.getElementById('scanner-status-text').textContent = `Mengunci LJK (${APP_STATE.stableLockCounter}/4)...`;
+                    document.getElementById('scanner-status-text').textContent = `Mengunci LJK (${APP_STATE.stableLockCounter}/3)...`;
 
-                    if (APP_STATE.stableLockCounter >= 4) {
+                    // Render overlay ringan: gambar video + bingkai + kotak sudut saja (tidak encode JPEG)
+                    drawLightweightOverlay(canvas, anchorRes.procCanvas, anchorRes.anchors, anchorRes.targetW, anchorRes.targetH);
+
+                    if (APP_STATE.stableLockCounter >= 3) {
                         stopCamera(false, false);
-                        finalizeOMRScan(res);
+                        finalizeScanFromVideo(video, anchorRes);
                         return;
                     }
                 } else {
                     APP_STATE.stableLockCounter = 0;
                     APP_STATE.lastAnchorSnapshot = null;
                     document.getElementById('scanner-status-text').textContent = 'Mencari 4 Kotak Hitam Sudut LJK...';
+                    // Gambar overlay "belum terkunci" hanya bila status berubah (anti kedip)
+                    drawLightweightOverlay(canvas, null, null, 0, 0);
                 }
             }
 
             requestAnimationFrame(singleShotLoop);
+        }
+
+        /**
+         * Overlay ringan: menampilkan feed video + bingkai panduan + kotak sudut.
+         * Tidak membaca gelembung & tidak encode JPEG. Meng-assign canvas.width hanya bila ukuran berubah
+         * (anti kedip). Bingkai panduan hanya digambar ulang bila status lock berubah.
+         */
+        function drawLightweightOverlay(canvas, procCanvas, anchors, w, h) {
+            if (!canvas) return;
+            const isLocked = Boolean(anchors);
+            // Jangan reset width tiap frame jika ukuran sama (menghindari kedip canvas)
+            const needResize = isLocked && (canvas.width !== w || canvas.height !== h);
+            if (needResize) {
+                canvas.width = w;
+                canvas.height = h;
+            }
+            if (!isLocked) {
+                // Tidak ada sudut: tampilkan feed video mentah saja, bingkai hanya bila status berubah
+                const video = document.getElementById('camera-video');
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    const vw = video.videoWidth, vh = video.videoHeight;
+                    if (canvas.width !== vw || canvas.height !== vh) { canvas.width = vw; canvas.height = vh; }
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, vw, vh);
+                    drawCameraGuide(ctx, vw, vh, false);
+                    APP_STATE.lastGuideLockedState = false;
+                }
+                return;
+            }
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(procCanvas, 0, 0, w, h);
+            drawCameraGuide(ctx, w, h, true);
+            // Garis kotak sudut hijau (bukan baca gelembung)
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(anchors.tl.x, anchors.tl.y);
+            ctx.lineTo(anchors.tr.x, anchors.tr.y);
+            ctx.lineTo(anchors.br.x, anchors.br.y);
+            ctx.lineTo(anchors.bl.x, anchors.bl.y);
+            ctx.closePath();
+            ctx.stroke();
+            APP_STATE.lastGuideLockedState = true;
+        }
+
+        /**
+         * Baca penuh gelembung + encode JPEG hanya SATU KALI saat lock tercapai (finalize).
+         * Memakai processOMRImage yang lengkap. Tidak dipanggil tiap frame.
+         */
+        function finalizeScanFromVideo(video, anchorRes) {
+            const displayCanvas = document.getElementById('scanner-canvas');
+            const fullRes = processOMRImage(video, displayCanvas, !APP_STATE.scanForKeyMode);
+            if (fullRes && fullRes.detected) {
+                finalizeOMRScan(fullRes);
+            } else {
+                // Fallback: gunakan hasil anchor saja walau baca gelembung gagal
+                finalizeOMRScan({ detected: true, anchors: anchorRes.anchors, answers: {}, annotatedDataUrl: null });
+            }
         }
 
         function isAnchorPositionStable(curr) {
@@ -1881,7 +1983,8 @@
             const dTR = Math.hypot(curr.tr.x - prev.tr.x, curr.tr.y - prev.tr.y);
             const dBL = Math.hypot(curr.bl.x - prev.bl.x, curr.bl.y - prev.bl.y);
             const dBR = Math.hypot(curr.br.x - prev.br.x, curr.br.y - prev.br.y);
-            return Math.max(dTL, dTR, dBL, dBR) < 16;
+            // Ambang dilonggarkan dari 16 -> 28 piksel agar tangan goyah kecil tidak mereset counter
+            return Math.max(dTL, dTR, dBL, dBR) < 28;
         }
 
         function captureManualNow() {
